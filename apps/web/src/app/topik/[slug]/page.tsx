@@ -5,6 +5,7 @@ import { ArrowRight, Search } from "lucide-react";
 import Header from "@/components/Header";
 import { Badge } from "@/components/ui/badge";
 import { getTopicBySlug, TOPICS } from "@/data/topics";
+import { workSlug as makeWorkSlug } from "@/lib/work-url";
 
 export function generateStaticParams() {
   return TOPICS.map((t) => ({ slug: t.slug }));
@@ -61,7 +62,7 @@ export default async function TopicDetailPage({ params }: PageProps) {
           <h2 className="font-heading text-xl mb-4">Peraturan Terkait</h2>
           <div className="flex flex-wrap gap-2">
             {topic.relatedLaws.map((law) => {
-              const lawSlug = `${law.type.toLowerCase()}-${law.number}-${law.year}`;
+              const lawSlug = makeWorkSlug(law, law.type);
               return (
                 <Link
                   key={lawSlug}

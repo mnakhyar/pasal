@@ -16,7 +16,7 @@ import PasalBlock from "@/components/reader/PasalBlock";
 
 export const revalidate = 86400; // ISR: 24 hours
 
-const getWorkBySlug = cache(async (typeCode: string, lawNumber: string, lawYear: number) => {
+const getWorkBySlug = cache(async (typeCode: string, slug: string) => {
   const supabase = await createClient();
   const { data: regType } = await supabase
     .from("regulation_types")
@@ -25,15 +25,29 @@ const getWorkBySlug = cache(async (typeCode: string, lawNumber: string, lawYear:
     .single();
   if (!regType) return null;
 
+  // Primary: look up by slug directly
   const { data: work } = await supabase
     .from("works")
     .select("id, title_id, number, year, status, subject_tags, content_verified, source_url, frbr_uri, slug, source_pdf_url")
     .eq("regulation_type_id", regType.id)
-    .eq("number", lawNumber)
-    .eq("year", lawYear)
+    .eq("slug", slug)
     .single();
 
-  return work ? { regType, work } : null;
+  if (work) return { regType, work };
+
+  // Fallback: parse slug into number+year for backwards compat (old URLs like uud-1945-1945)
+  const parsed = parseSlug(slug);
+  if (!parsed) return null;
+
+  const { data: fallbackWork } = await supabase
+    .from("works")
+    .select("id, title_id, number, year, status, subject_tags, content_verified, source_url, frbr_uri, slug, source_pdf_url")
+    .eq("regulation_type_id", regType.id)
+    .eq("number", parsed.lawNumber)
+    .eq("year", parsed.lawYear)
+    .single();
+
+  return fallbackWork ? { regType, work: fallbackWork } : null;
 });
 
 interface PageProps {
@@ -42,10 +56,8 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { type, slug } = await params;
-  const parsed = parseSlug(slug);
-  if (!parsed) return {};
 
-  const result = await getWorkBySlug(type.toUpperCase(), parsed.lawNumber, parsed.lawYear);
+  const result = await getWorkBySlug(type.toUpperCase(), slug);
   if (!result) return {};
 
   const { work } = result;
@@ -74,6 +86,7 @@ interface RelatedWork {
   number: string;
   year: number;
   frbr_uri: string;
+  slug: string | null;
   regulation_type_id: number;
 }
 
@@ -94,10 +107,23 @@ function resolveRelationships(
   relatedWorks: Record<number, RelatedWork>,
 ): ResolvedRelationship[] {
   const resolved: ResolvedRelationship[] = [];
+  const seenWorkIds = new Set<number>();
   for (const rel of relationships) {
     const otherId = rel.source_work_id === workId ? rel.target_work_id : rel.source_work_id;
     const otherWork = relatedWorks[otherId];
     if (!otherWork) continue;
+    // Deduplicate: DB stores both directions (mengubah + diubah_oleh).
+    // Keep only one entry per related work — prefer the row where current work is source.
+    if (seenWorkIds.has(otherId)) {
+      if (rel.source_work_id === workId) {
+        const idx = resolved.findIndex((r) => r.otherWork.id === otherId);
+        if (idx !== -1) {
+          resolved[idx] = { id: rel.id, nameId: rel.relationship_types.name_id, otherWork };
+        }
+      }
+      continue;
+    }
+    seenWorkIds.add(otherId);
     resolved.push({
       id: rel.id,
       nameId: rel.relationship_types.name_id,
@@ -144,7 +170,7 @@ async function LawReaderSection({
   if (relatedWorkIds.length > 0) {
     const { data: rw } = await supabase
       .from("works")
-      .select("id, title_id, number, year, frbr_uri, regulation_type_id")
+      .select("id, title_id, number, year, frbr_uri, slug, regulation_type_id")
       .in("id", relatedWorkIds);
     relatedWorks = Object.fromEntries((rw || []).map((w) => [w.id, w]));
   }
@@ -284,13 +310,8 @@ function ReaderSkeleton() {
 export default async function LawDetailPage({ params }: PageProps) {
   const { type, slug } = await params;
 
-  // Parse slug: "uu-13-2003" -> number=13, year=2003
-  const parsed = parseSlug(slug);
-  if (!parsed) notFound();
-  const { lawNumber, lawYear } = parsed;
-
   // Use cached function (shared with generateMetadata — second call hits cache)
-  const result = await getWorkBySlug(type.toUpperCase(), lawNumber, lawYear);
+  const result = await getWorkBySlug(type.toUpperCase(), slug);
   if (!result) notFound();
   const { work } = result;
 

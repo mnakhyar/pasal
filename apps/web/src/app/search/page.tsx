@@ -12,6 +12,7 @@ import { getRegTypeCode } from "@/lib/get-reg-type-code";
 import type { ChunkResult } from "@/lib/group-search-results";
 import { groupChunksByWork, formatPasalList } from "@/lib/group-search-results";
 import { STATUS_COLORS, STATUS_LABELS } from "@/lib/legal-status";
+import { workSlug } from "@/lib/work-url";
 import { createClient } from "@/lib/supabase/server";
 
 interface SearchParams {
@@ -40,6 +41,7 @@ interface WorkResult {
   number: string;
   year: number;
   status: string;
+  slug: string | null;
   regulation_types: { code: string }[] | { code: string } | null;
 }
 
@@ -100,7 +102,7 @@ async function SearchResults({ query, type }: SearchResultsProps) {
   const workIds = grouped.map((g) => g.work_id);
   const { data: works } = await supabase
     .from("works")
-    .select("id, frbr_uri, title_id, number, year, status, regulation_types(code)")
+    .select("id, frbr_uri, title_id, number, year, status, slug, regulation_types(code)")
     .in("id", workIds);
 
   const worksMap = new Map((works || []).map((w: WorkResult) => [w.id, w]));
@@ -120,7 +122,7 @@ async function SearchResults({ query, type }: SearchResultsProps) {
         if (!work) return null;
 
         const regType = getRegTypeCode(work.regulation_types);
-        const slug = `${regType.toLowerCase()}-${work.number}-${work.year}`;
+        const slug = workSlug(work, regType);
         const rawSnippet = group.bestChunk.snippet || group.bestChunk.content.split("\n").slice(2).join(" ").slice(0, 250);
         const snippetHtml = sanitizeSnippet(rawSnippet);
         const pasalLabel = formatPasalList(group.matchingPasals);

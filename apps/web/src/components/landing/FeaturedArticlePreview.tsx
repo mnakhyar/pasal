@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { STATUS_COLORS, STATUS_LABELS } from "@/lib/legal-status";
 import { getRegTypeCode } from "@/lib/get-reg-type-code";
+import { workPath } from "@/lib/work-url";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function FeaturedArticlePreview() {
@@ -10,7 +11,7 @@ export default async function FeaturedArticlePreview() {
   // Fetch UU 1/1974 (Marriage Law)
   const { data: work } = await supabase
     .from("works")
-    .select("id, title_id, number, year, status, regulation_types(code)")
+    .select("id, title_id, number, year, status, slug, regulation_types(code)")
     .eq("number", "1")
     .eq("year", 1974)
     .limit(1)
@@ -40,7 +41,7 @@ export default async function FeaturedArticlePreview() {
   if (!pasal) return null;
 
   const regCode = getRegTypeCode(work.regulation_types) || "UU";
-  const slug = `${regCode.toLowerCase()}-${work.number}-${work.year}`;
+  const href = workPath(work, regCode);
 
   return (
     <section className="py-10 sm:py-12">
@@ -80,7 +81,7 @@ export default async function FeaturedArticlePreview() {
               {work.title_id}
             </p>
             <Link
-              href={`/peraturan/${regCode.toLowerCase()}/${slug}`}
+              href={href}
               className="shrink-0 text-sm font-medium text-primary hover:underline"
             >
               Baca &rarr;

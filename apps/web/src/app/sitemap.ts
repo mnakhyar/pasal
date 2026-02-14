@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { TOPICS } from "@/data/topics";
 import { getRegTypeCode } from "@/lib/get-reg-type-code";
+import { workSlug } from "@/lib/work-url";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -9,7 +10,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Fetch all works with their regulation type codes
   const { data: works } = await supabase
     .from("works")
-    .select("number, year, regulation_types(code)")
+    .select("number, year, slug, regulation_types(code)")
     .order("year", { ascending: false });
 
   // Static pages
@@ -33,7 +34,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .filter((work) => getRegTypeCode(work.regulation_types))
     .map((work) => {
       const type = getRegTypeCode(work.regulation_types).toLowerCase();
-      const slug = `${type}-${work.number}-${work.year}`;
+      const slug = workSlug(work, type);
       return {
         url: `https://pasal.id/peraturan/${type}/${slug}`,
         changeFrequency: "yearly" as const,

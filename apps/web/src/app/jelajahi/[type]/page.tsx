@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { STATUS_COLORS, STATUS_LABELS, TYPE_LABELS } from "@/lib/legal-status";
+import { workPath } from "@/lib/work-url";
 import Header from "@/components/Header";
 import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -47,7 +48,7 @@ export default async function TypeListingPage({ params, searchParams }: PageProp
 
   let query = supabase
     .from("works")
-    .select("id, number, year, title_id, status", { count: "exact" })
+    .select("id, number, year, title_id, status, slug", { count: "exact" })
     .eq("regulation_type_id", regType.id)
     .order("year", { ascending: false })
     .order("number", { ascending: false })
@@ -92,8 +93,8 @@ export default async function TypeListingPage({ params, searchParams }: PageProp
     (_, i) => maxYear - i,
   );
 
-  function readerUrl(work: { number: string; year: number }): string {
-    return `/peraturan/${typePath}/${typePath}-${work.number}-${work.year}`;
+  function readerUrl(work: { number: string; year: number; slug?: string | null }): string {
+    return workPath(work, typeCode);
   }
 
   function pageUrl(p: number): string {

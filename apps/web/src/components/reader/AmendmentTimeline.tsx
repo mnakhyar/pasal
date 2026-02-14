@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { frbrToPath } from "@/lib/frbr";
+import { workPath } from "@/lib/work-url";
 import { STATUS_LABELS } from "@/lib/legal-status";
 
 interface TimelineNode {
@@ -8,7 +8,8 @@ interface TimelineNode {
   number: string;
   title: string;
   relationship: string;
-  frbrUri: string;
+  slug: string | null;
+  href: string;
   isCurrent: boolean;
 }
 
@@ -19,6 +20,7 @@ interface AmendmentTimelineProps {
     title_id: string;
     frbr_uri: string;
     status: string;
+    slug?: string | null;
   };
   relationships: {
     id: number;
@@ -29,6 +31,7 @@ interface AmendmentTimelineProps {
       number: string;
       year: number;
       frbr_uri: string;
+      slug: string | null;
       regulation_type_id: number;
     };
   }[];
@@ -53,7 +56,8 @@ export default function AmendmentTimeline({
     number: currentWork.number,
     title: currentWork.title_id,
     relationship: "Undang-Undang ini",
-    frbrUri: currentWork.frbr_uri,
+    slug: currentWork.slug ?? null,
+    href: workPath(currentWork, regTypeCode),
     isCurrent: true,
   };
 
@@ -63,7 +67,8 @@ export default function AmendmentTimeline({
     number: rel.otherWork.number,
     title: rel.otherWork.title_id,
     relationship: rel.nameId,
-    frbrUri: rel.otherWork.frbr_uri,
+    slug: rel.otherWork.slug,
+    href: workPath(rel.otherWork, regTypeCode),
     isCurrent: false,
   }));
 
@@ -95,7 +100,7 @@ export default function AmendmentTimeline({
                 </p>
               ) : (
                 <Link
-                  href={frbrToPath(node.frbrUri)}
+                  href={node.href}
                   className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
                 >
                   {node.type} {node.number}/{node.year}

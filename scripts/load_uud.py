@@ -5,7 +5,7 @@ Does NOT touch crawl_jobs — completely independent of the scraper-worker.
 Usage:
     python scripts/load_uud.py
     python scripts/load_uud.py --dry-run   # Parse only, don't load
-    python scripts/load_uud.py --upload     # Also upload PDFs to Supabase Storage
+    python scripts/load_uud.py --upload     # Also upload PDFs + page images to Supabase Storage
 """
 import argparse
 import os
@@ -15,10 +15,15 @@ from pathlib import Path
 from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent / ".env")
 
-sys.path.insert(0, str(Path(__file__).parent / "parser"))
-sys.path.insert(0, str(Path(__file__).parent / "loader"))
+sys.path.insert(0, str(Path(__file__).parent))
 
-from parser.pipeline import process_pdf, load_to_db
+from parser.extract_pymupdf import extract_text_pymupdf
+from parser.ocr_correct import correct_ocr_errors
+from parser.parse_structure import parse_structure, count_pasals
+from loader.load_to_supabase import (
+    init_supabase, load_work, cleanup_work_data,
+    load_nodes_by_level, create_chunks,
+)
 
 PDF_DIR = Path(__file__).parent.parent / "data" / "raw" / "pdfs"
 
@@ -72,6 +77,59 @@ UUD_RELATIONSHIPS = [
     ("/akn/id/act/uud/1945/perubahan-2", "/akn/id/act/uud/1945/original", "mengubah"),
     ("/akn/id/act/uud/1945/original", "/akn/id/act/uud/1945/perubahan-2", "diubah_oleh"),
 ]
+
+
+def process_pdf(pdf_path: Path, metadata: dict) -> dict | None:
+    """Extract text from PDF, correct OCR errors, parse structure.
+
+    Returns a law dict compatible with load_work/create_chunks, or None on failure.
+    """
+    text, stats = extract_text_pymupdf(pdf_path)
+    if not text or stats.get("error"):
+        print(f"  Extract failed: {stats.get('error', 'empty text')}")
+        return None
+
+    print(f"  Extracted: {stats['page_count']} pages, {stats['char_count']} chars")
+
+    text = correct_ocr_errors(text)
+    nodes = parse_structure(text)
+    pasal_count = count_pasals(nodes)
+    print(f"  Parsed: {len(nodes)} top-level nodes, {pasal_count} pasals")
+
+    return {
+        **metadata,
+        "nodes": nodes,
+        "full_text": text,
+        "source_url": "https://peraturan.go.id/id/uud-1945",
+    }
+
+
+def render_page_images(sb, pdf_path: Path, slug: str) -> int:
+    """Render each PDF page as PNG and upload to Supabase Storage."""
+    import pymupdf
+
+    bucket = sb.storage.from_("regulation-pdfs")
+    doc = pymupdf.open(str(pdf_path))
+    count = 0
+
+    for page_num in range(len(doc)):
+        page = doc[page_num]
+        pix = page.get_pixmap(dpi=150)
+        png_bytes = pix.tobytes("png")
+
+        storage_path = f"{slug}/page-{page_num + 1}.png"
+        try:
+            bucket.upload(
+                storage_path, png_bytes,
+                {"content-type": "image/png", "upsert": "true"},
+            )
+            count += 1
+        except Exception as e:
+            print(f"  Page image upload error ({storage_path}): {e}")
+
+    doc.close()
+    print(f"  Uploaded {count} page images for {slug}")
+    return count
 
 
 def insert_relationships(sb) -> int:
@@ -135,7 +193,7 @@ def upload_pdfs(sb) -> int:
 def main():
     parser = argparse.ArgumentParser(description="Process and load UUD 1945 into Supabase")
     parser.add_argument("--dry-run", action="store_true", help="Parse only, don't load to DB")
-    parser.add_argument("--upload", action="store_true", help="Upload PDFs to Supabase Storage")
+    parser.add_argument("--upload", action="store_true", help="Upload PDFs + page images to Supabase Storage")
     args = parser.parse_args()
 
     print("=== Processing UUD 1945 (3 documents) ===\n")
@@ -154,9 +212,7 @@ def main():
             print(f"  FAILED to parse")
             continue
 
-        # Override source URLs with correct values
         result["slug"] = entry["slug"]
-        result["source_url"] = "https://peraturan.go.id/id/uud-1945"
         results.append((entry, result))
 
     print(f"\n=== Parsed {len(results)}/3 documents ===")
@@ -171,31 +227,47 @@ def main():
 
     # Load into DB
     print("\n=== Loading into Supabase ===")
+    sb = init_supabase()
     work_ids = []
+
     for entry, result in results:
         print(f"\nLoading {entry['slug']}...")
-        work_id = load_to_db(result)
-        if work_id:
-            work_ids.append(work_id)
-            print(f"  OK: work_id={work_id}")
-        else:
-            print(f"  FAILED to load")
+
+        work_id = load_work(sb, result)
+        if not work_id:
+            print(f"  FAILED to insert work")
+            continue
+
+        # Clean old data and reload
+        cleanup_work_data(sb, work_id)
+
+        nodes = result.get("nodes", [])
+        pasal_nodes = load_nodes_by_level(sb, work_id, nodes)
+        print(f"  Inserted {len(pasal_nodes)} chunk-able nodes")
+
+        chunk_count = create_chunks(sb, work_id, result, pasal_nodes)
+        print(f"  Created {chunk_count} search chunks")
+
+        work_ids.append(work_id)
+        print(f"  OK: work_id={work_id}")
 
     # Insert relationships
     if len(work_ids) == 3:
         print("\n=== Inserting relationships ===")
-        from supabase import create_client
-        sb = create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_KEY"])
         rel_count = insert_relationships(sb)
         print(f"  Inserted {rel_count} relationships")
 
-    # Upload PDFs to storage
+    # Upload PDFs and page images to storage
     if args.upload and work_ids:
         print("\n=== Uploading PDFs to Supabase Storage ===")
-        from supabase import create_client
-        sb = create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_KEY"])
         upload_count = upload_pdfs(sb)
         print(f"  Uploaded {upload_count} PDFs")
+
+        print("\n=== Rendering page images ===")
+        for entry in UUD_ENTRIES:
+            pdf_path = PDF_DIR / entry["pdf"]
+            if pdf_path.exists():
+                render_page_images(sb, pdf_path, entry["slug"])
 
     print(f"\n=== Done: {len(work_ids)} works loaded, UUD 1945 is live ===")
 
