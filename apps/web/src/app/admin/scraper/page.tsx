@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/admin-auth";
 
 const STATUS_ORDER = [
   "pending",
@@ -294,7 +295,9 @@ async function DashboardContent() {
   );
 }
 
-export default function ScraperDashboardPage() {
+export default async function ScraperDashboardPage() {
+  await requireAdmin();
+
   return (
     <>
       <div className="mb-8">
