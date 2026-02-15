@@ -36,7 +36,7 @@ export default function PasalBlock({ pasal, pathname, pageUrl }: PasalBlockProps
           <PasalLogo size={18} className="text-primary/60" />
           {t("pasalPrefix")} {pasal.number}
         </h3>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 no-print">
           <Link
             href={koreksiHref}
             className="inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs text-muted-foreground hover:text-primary hover:border-primary/30 transition-colors"

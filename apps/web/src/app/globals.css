@@ -214,3 +214,31 @@
     100% { transform: translateX(100%); }
   }
 }
+
+@media print {
+  header, footer, nav, aside,
+  .no-print, [data-no-print] {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 12pt !important;
+  }
+
+  main {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  article[id^="pasal-"] {
+    break-inside: avoid;
+  }
+
+  section[id^="bab-"] > h2,
+  section[id^="bab-"] > div:first-child {
+    break-after: avoid;
+  }
+}

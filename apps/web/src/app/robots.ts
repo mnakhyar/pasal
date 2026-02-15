@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/admin/"],
+        disallow: ["/admin/", "/api/og"],
       },
     ],
     sitemap: "https://pasal.id/sitemap.xml",

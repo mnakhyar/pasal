@@ -20,6 +20,7 @@ import PasalBlock from "@/components/reader/PasalBlock";
 import HashHighlighter from "@/components/reader/HashHighlighter";
 import VerificationBadge from "@/components/reader/VerificationBadge";
 import LegalContentLanguageNotice from "@/components/LegalContentLanguageNotice";
+import PrintButton from "@/components/PrintButton";
 import ShareButton from "@/components/ShareButton";
 import SectionLinkButton from "@/components/SectionLinkButton";
 import CitationButton from "@/components/CitationButton";
@@ -312,6 +313,10 @@ async function LawReaderSection({
               title={`${type.toUpperCase()} ${work.number}/${work.year} — ${work.title_id}`}
             />
           </div>
+
+          <div className="rounded-lg border p-4 no-print">
+            <PrintButton />
+          </div>
         </div>
       }
       sourcePdfUrl={work.source_pdf_url ?? null}
@@ -383,6 +388,11 @@ export default async function LawDetailPage({ params }: PageProps) {
     legislationLegalForce: LEGAL_FORCE_MAP[work.status] || "InForce",
     inLanguage: "id",
     url: pageUrl,
+    legislationLegalValue: "UnofficialLegalValue",
+    legislationJurisdiction: {
+      "@type": "AdministrativeArea",
+      name: "Indonesia",
+    },
   };
 
   return (
@@ -395,7 +405,7 @@ export default async function LawDetailPage({ params }: PageProps) {
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-2">
             <Badge variant="secondary">{type.toUpperCase()}</Badge>
-            <div className="ml-auto flex items-center gap-1">
+            <div className="ml-auto flex items-center gap-1 no-print">
               <CitationButton
                 type={type}
                 number={work.number}
@@ -416,7 +426,7 @@ export default async function LawDetailPage({ params }: PageProps) {
           </p>
         </div>
 
-        <DisclaimerBanner className="mb-6" />
+        <DisclaimerBanner className="mb-6 no-print" />
 
         <Suspense fallback={<ReaderSkeleton />}>
           <LawReaderSection

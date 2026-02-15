@@ -5,6 +5,7 @@ import { ArrowRight, Search } from "lucide-react";
 import { setRequestLocale, getTranslations } from "next-intl/server";
 import type { Locale } from "@/i18n/routing";
 import Header from "@/components/Header";
+import JsonLd from "@/components/JsonLd";
 import ShareButton from "@/components/ShareButton";
 import { Badge } from "@/components/ui/badge";
 import { getTopicBySlug, TOPICS } from "@/data/topics";
@@ -52,6 +53,15 @@ export default async function TopicDetailPage({ params }: PageProps) {
   return (
     <div className="min-h-screen">
       <Header />
+      <JsonLd data={{
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Beranda", item: "https://pasal.id" },
+          { "@type": "ListItem", position: 2, name: "Topik", item: "https://pasal.id/topik" },
+          { "@type": "ListItem", position: 3, name: topic.title },
+        ],
+      }} />
 
       <main className="container mx-auto max-w-3xl px-4 py-12">
         <div className="mb-8">
