@@ -12,6 +12,8 @@ interface AdminActionsProps {
   currentSourceUrl: string;
   currentPdfUrl: string;
   currentTitle: string;
+  regTypeCode: string;
+  slug: string;
 }
 
 export default function AdminActions({
@@ -20,6 +22,8 @@ export default function AdminActions({
   currentSourceUrl,
   currentPdfUrl,
   currentTitle,
+  regTypeCode,
+  slug,
 }: AdminActionsProps) {
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
@@ -83,6 +87,34 @@ export default function AdminActions({
     }
   }
 
+  async function handleRevalidate() {
+    setLoading("revalidate");
+    setMessage(null);
+    try {
+      const lawPath = `/peraturan/${regTypeCode.toLowerCase()}/${slug}`;
+      const res = await fetch("/api/admin/revalidate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          paths: [lawPath, `/id${lawPath}`, `/en${lawPath}`],
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMessage({
+          type: "success",
+          text: `Cache diperbarui: ${lawPath}`,
+        });
+      } else {
+        setMessage({ type: "error", text: data.error || "Gagal memperbarui cache" });
+      }
+    } catch {
+      setMessage({ type: "error", text: "Network error" });
+    } finally {
+      setLoading(null);
+    }
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -126,7 +158,22 @@ export default function AdminActions({
           )}
         </div>
 
-        <div className="border-t pt-4">
+        <div className="border-t pt-4 space-y-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full justify-start gap-2"
+            onClick={handleRevalidate}
+            disabled={loading !== null}
+          >
+            {loading === "revalidate" ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <RefreshCw className="h-4 w-4" aria-hidden="true" />
+            )}
+            Perbarui Cache
+          </Button>
+
           <Button
             variant="outline"
             size="sm"

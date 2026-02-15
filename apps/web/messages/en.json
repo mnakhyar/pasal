@@ -111,7 +111,10 @@
     "pdfSource": "Source PDF",
     "closePdfPanel": "Close PDF panel",
     "pasalPrefix": "Article",
-    "suggestCorrection": "Suggest Correction"
+    "suggestCorrection": "Suggest Correction",
+    "loadMorePasals": "Load {remaining} more articles",
+    "loading": "Loading...",
+    "noMorePasals": "All articles loaded"
   },
   "verification": {
     "verified": "Verified",

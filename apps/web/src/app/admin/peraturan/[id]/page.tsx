@@ -387,6 +387,8 @@ export default async function AdminPeraturanDetailPage({ params }: PageProps) {
             currentSourceUrl={work.source_url || ""}
             currentPdfUrl={work.source_pdf_url || ""}
             currentTitle={work.title_id || ""}
+            regTypeCode={regType.code}
+            slug={work.slug || ""}
           />
         </div>
       </div>

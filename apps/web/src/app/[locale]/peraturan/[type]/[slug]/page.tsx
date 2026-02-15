@@ -17,6 +17,7 @@ import TableOfContents from "@/components/TableOfContents";
 import AmendmentTimeline from "@/components/reader/AmendmentTimeline";
 import ReaderLayout from "@/components/reader/ReaderLayout";
 import PasalBlock from "@/components/reader/PasalBlock";
+import PasalList from "@/components/reader/PasalList";
 import HashHighlighter from "@/components/reader/HashHighlighter";
 import VerificationBadge from "@/components/reader/VerificationBadge";
 import LegalContentLanguageNotice from "@/components/LegalContentLanguageNotice";
@@ -195,19 +196,63 @@ async function LawReaderSection({
   const statusT = await getTranslations("status");
   const supabase = await createClient();
 
-  // Fetch nodes and relationships in parallel
-  const [{ data: nodes }, { data: relationships }] = await Promise.all([
-    supabase
-      .from("document_nodes")
-      .select("id, node_type, number, heading, parent_id, sort_order, content_text, pdf_page_start, pdf_page_end")
-      .eq("work_id", workId)
-      .order("sort_order"),
-    supabase
-      .from("work_relationships")
-      .select("*, relationship_types(code, name_id, name_en)")
-      .or(`source_work_id.eq.${workId},target_work_id.eq.${workId}`)
-      .order("id"),
-  ]);
+  // Check total pasal count first to decide fetch strategy
+  const { count: totalPasalCount } = await supabase
+    .from("document_nodes")
+    .select("id", { count: "exact", head: true })
+    .eq("work_id", workId)
+    .eq("node_type", "pasal");
+
+  // For small documents (< 100 pasals), fetch everything at once (old behavior)
+  // For large documents, use pagination
+  const usePagination = (totalPasalCount || 0) >= 100;
+
+  let structuralNodes, pasalNodes, relationships;
+
+  if (usePagination) {
+    // Fetch structural nodes and initial pasals separately
+    const [{ data: structure }, { data: initial }, { data: rels }] = await Promise.all([
+      supabase
+        .from("document_nodes")
+        .select("id, node_type, number, heading, parent_id, sort_order")
+        .eq("work_id", workId)
+        .in("node_type", ["bab", "aturan", "bagian", "paragraf"])
+        .order("sort_order"),
+      supabase
+        .from("document_nodes")
+        .select("id, node_type, number, heading, parent_id, sort_order, content_text, pdf_page_start, pdf_page_end")
+        .eq("work_id", workId)
+        .eq("node_type", "pasal")
+        .order("sort_order")
+        .limit(30),
+      supabase
+        .from("work_relationships")
+        .select("*, relationship_types(code, name_id, name_en)")
+        .or(`source_work_id.eq.${workId},target_work_id.eq.${workId}`)
+        .order("id"),
+    ]);
+    structuralNodes = structure;
+    pasalNodes = initial;
+    relationships = rels;
+  } else {
+    // Old behavior: fetch all nodes at once
+    const [{ data: nodes }, { data: rels }] = await Promise.all([
+      supabase
+        .from("document_nodes")
+        .select("id, node_type, number, heading, parent_id, sort_order, content_text, pdf_page_start, pdf_page_end")
+        .eq("work_id", workId)
+        .order("sort_order"),
+      supabase
+        .from("work_relationships")
+        .select("*, relationship_types(code, name_id, name_en)")
+        .or(`source_work_id.eq.${workId},target_work_id.eq.${workId}`)
+        .order("id"),
+    ]);
+    const allNodes = nodes || [];
+    structuralNodes = allNodes.filter((n) => n.node_type === "bab" || n.node_type === "aturan");
+    pasalNodes = allNodes.filter((n) => n.node_type === "pasal");
+    relationships = rels;
+  }
 
   // Get related work info
   const relatedWorkIds = (relationships || [])
@@ -228,21 +273,20 @@ async function LawReaderSection({
   const pageUrl = `https://pasal.id/peraturan/${type.toLowerCase()}/${slug}`;
 
   // Build tree structure
-  const allNodes = nodes || [];
-  const babNodes = allNodes.filter((n) => n.node_type === "bab" || n.node_type === "aturan");
-  const pasalNodes = allNodes.filter((n) => n.node_type === "pasal");
+  const babNodes = structuralNodes || [];
+  const allPasals = pasalNodes || [];
 
   const mainContent = (
     <>
       {babNodes.length > 0 ? (
         babNodes.map((bab) => {
-          const directPasals = pasalNodes.filter((p) => p.parent_id === bab.id);
-          const directPasalIds = new Set(directPasals.map((p) => p.id));
+          // Filter pasals for this BAB
+          const directPasals = allPasals.filter((p) => p.parent_id === bab.id);
           const subSectionIds = new Set(
-            allNodes.filter((n) => n.parent_id === bab.id).map((n) => n.id),
+            babNodes.filter((n) => n.parent_id === bab.id).map((n) => n.id),
           );
-          const nestedPasals = pasalNodes.filter(
-            (p) => subSectionIds.has(p.parent_id ?? -1) && !directPasalIds.has(p.id),
+          const nestedPasals = allPasals.filter(
+            (p) => subSectionIds.has(p.parent_id ?? -1),
           );
           const allBabPasals = [...directPasals, ...nestedPasals]
             .sort((a, b) => a.sort_order - b.sort_order);
@@ -261,12 +305,6 @@ async function LawReaderSection({
                 </p>
               )}
 
-              {allBabPasals.length === 0 && bab.content_text && (
-                <div className="text-sm leading-relaxed whitespace-pre-wrap">
-                  {bab.content_text}
-                </div>
-              )}
-
               {allBabPasals.map((pasal) => (
                 <PasalBlock key={pasal.id} pasal={pasal} pathname={pathname} pageUrl={pageUrl} />
               ))}
@@ -274,12 +312,25 @@ async function LawReaderSection({
           );
         })
       ) : (
-        pasalNodes.map((pasal) => (
-          <PasalBlock key={pasal.id} pasal={pasal} pathname={pathname} pageUrl={pageUrl} />
-        ))
+        <>
+          {/* No BABs - render pasals directly */}
+          {usePagination ? (
+            <PasalList
+              workId={workId}
+              initialPasals={allPasals}
+              totalPasals={totalPasalCount || 0}
+              pathname={pathname}
+              pageUrl={pageUrl}
+            />
+          ) : (
+            allPasals.map((pasal) => (
+              <PasalBlock key={pasal.id} pasal={pasal} pathname={pathname} pageUrl={pageUrl} />
+            ))
+          )}
+        </>
       )}
 
-      {pasalNodes.length === 0 && (
+      {allPasals.length === 0 && (
         <div className="rounded-lg border p-8 text-center text-muted-foreground">
           <PasalLogo size={48} className="mx-auto mb-3 opacity-20" />
           {t("noContentYet")}
@@ -290,7 +341,7 @@ async function LawReaderSection({
 
   return (
     <ReaderLayout
-      toc={<TableOfContents babs={babNodes} pasals={pasalNodes} />}
+      toc={<TableOfContents babs={babNodes} pasals={allPasals} />}
       content={
         <>
           <HashHighlighter />
