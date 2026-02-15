@@ -14,6 +14,7 @@ import DemoThinkingIndicator from "./DemoThinkingIndicator";
 export default function MCPDemo() {
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(containerRef, { once: false, margin: "-100px" });
   const { state, start, pause, resume } = useAnimation(DEMO_SCRIPT);
 
@@ -61,15 +62,33 @@ export default function MCPDemo() {
     }
   }, [state.isPlaying, pause, resume]);
 
-  // Auto-scroll to bottom as new steps appear
+  // Auto-scroll as content grows (typing word-wrap, tool result expansion, new steps).
+  // A ResizeObserver on the content wrapper fires whenever its height changes,
+  // covering all cases without relying on specific state dependencies.
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTo({
-        top: scrollRef.current.scrollHeight,
-        behavior: "smooth",
+    const scrollEl = scrollRef.current;
+    const contentEl = contentRef.current;
+    if (!scrollEl || !contentEl) return;
+
+    let rafId: number;
+
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        scrollEl.scrollTo({
+          top: scrollEl.scrollHeight,
+          behavior: "smooth",
+        });
       });
-    }
-  }, [state.visibleSteps.length]);
+    });
+
+    observer.observe(contentEl);
+
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(rafId);
+    };
+  }, []);
 
   // Reduced-motion fallback: show static screenshot
   if (prefersReduced) {
@@ -125,8 +144,9 @@ export default function MCPDemo() {
         {/* Chat area */}
         <div
           ref={scrollRef}
-          className="h-[360px] sm:h-[420px] overflow-y-auto px-4 py-4 space-y-3 bg-background"
+          className="h-[360px] sm:h-[420px] overflow-y-auto px-4 py-4 bg-background"
         >
+          <div ref={contentRef} className="space-y-3">
           {state.visibleSteps.map((step, i) => {
             const isActive = i === state.activeIndex;
 
@@ -183,6 +203,7 @@ export default function MCPDemo() {
                 return null;
             }
           })}
+          </div>
         </div>
 
         {/* Bottom bar — shows what's happening */}
