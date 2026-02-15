@@ -2,6 +2,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { requireAdmin } from "@/lib/admin-auth";
 import { FileText, MessageSquare, History } from "lucide-react";
 import Link from "next/link";
+import RevalidateButton from "@/components/admin/RevalidateButton";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,10 @@ export default async function AdminDashboardPage() {
 
   return (
     <div>
-      <h1 className="font-heading text-3xl tracking-tight mb-8">Dashboard</h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="font-heading text-3xl tracking-tight">Dashboard</h1>
+        <RevalidateButton />
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {stats.map((stat) => (
