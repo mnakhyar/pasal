@@ -21,6 +21,8 @@ import HashHighlighter from "@/components/reader/HashHighlighter";
 import VerificationBadge from "@/components/reader/VerificationBadge";
 import LegalContentLanguageNotice from "@/components/LegalContentLanguageNotice";
 import ShareButton from "@/components/ShareButton";
+import SectionLinkButton from "@/components/SectionLinkButton";
+import CitationButton from "@/components/CitationButton";
 
 export const revalidate = 86400; // ISR: 24 hours
 
@@ -198,6 +200,8 @@ async function LawReaderSection({
 
   const resolvedRels = resolveRelationships(relationships || [], workId, relatedWorks);
 
+  const pageUrl = `https://pasal.id/peraturan/${type.toLowerCase()}/${slug}`;
+
   // Build tree structure
   const allNodes = nodes || [];
   const babNodes = allNodes.filter((n) => n.node_type === "bab" || n.node_type === "aturan");
@@ -220,9 +224,12 @@ async function LawReaderSection({
 
           return (
             <section key={bab.id} id={`bab-${bab.number}`} className="mb-12 scroll-mt-20">
-              <h2 className="font-heading text-xl text-center mb-1">
-                {bab.node_type === "aturan" ? bab.number : `BAB ${bab.number}`}
-              </h2>
+              <div className="group flex justify-center items-center gap-2 mb-1">
+                <h2 className="font-heading text-xl">
+                  {bab.node_type === "aturan" ? bab.number : `BAB ${bab.number}`}
+                </h2>
+                <SectionLinkButton url={`${pageUrl}#bab-${bab.number}`} />
+              </div>
               {bab.heading && bab.node_type !== "aturan" && (
                 <p className="text-center text-base font-heading text-muted-foreground mb-6">
                   {bab.heading}
@@ -236,14 +243,14 @@ async function LawReaderSection({
               )}
 
               {allBabPasals.map((pasal) => (
-                <PasalBlock key={pasal.id} pasal={pasal} pathname={pathname} pageUrl={`https://pasal.id/peraturan/${type.toLowerCase()}/${slug}`} />
+                <PasalBlock key={pasal.id} pasal={pasal} pathname={pathname} pageUrl={pageUrl} />
               ))}
             </section>
           );
         })
       ) : (
         pasalNodes.map((pasal) => (
-          <PasalBlock key={pasal.id} pasal={pasal} pathname={pathname} pageUrl={`https://pasal.id/peraturan/${type.toLowerCase()}/${slug}`} />
+          <PasalBlock key={pasal.id} pasal={pasal} pathname={pathname} pageUrl={pageUrl} />
         ))
       )}
 
@@ -301,7 +308,7 @@ async function LawReaderSection({
           <div className="rounded-lg border p-4">
             <h3 className="font-heading text-sm mb-3">Bagikan</h3>
             <ShareButton
-              url={`https://pasal.id/peraturan/${type.toLowerCase()}/${slug}`}
+              url={pageUrl}
               title={`${type.toUpperCase()} ${work.number}/${work.year} — ${work.title_id}`}
             />
           </div>
@@ -388,7 +395,14 @@ export default async function LawDetailPage({ params }: PageProps) {
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-2">
             <Badge variant="secondary">{type.toUpperCase()}</Badge>
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-1">
+              <CitationButton
+                type={type}
+                number={work.number}
+                year={work.year}
+                title={work.title_id}
+                url={pageUrl}
+              />
               <ShareButton
                 url={pageUrl}
                 title={`${type.toUpperCase()} ${work.number}/${work.year} — ${work.title_id}`}
