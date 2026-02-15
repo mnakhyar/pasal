@@ -10,7 +10,7 @@ os.environ.setdefault("SUPABASE_KEY", "fake-key")
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from load_to_supabase import load_work, load_nodes_recursive, create_chunks
+from load_to_supabase import load_work, load_nodes_recursive
 
 _CHAINABLE = ("select", "eq", "neq", "in_", "ilike", "or_", "match",
               "order", "range", "limit", "single", "upsert", "insert", "delete")
@@ -152,70 +152,3 @@ class TestLoadNodesRecursive:
         assert insert_calls[1]["parent_id"] == 1
 
 
-class TestCreateChunks:
-    def test_with_pasals(self):
-        sb = _sb()
-        mock = _qm()
-        sb.table.return_value = mock
-
-        law = {"title_id": "UU 13/2003", "type": "UU", "number": "13", "year": 2003}
-        pasal_nodes = [
-            {"node_id": 1, "number": "1", "content": "Some substantial content here for testing.",
-             "heading": "", "parent_heading": ""},
-            {"node_id": 2, "number": "2", "content": "Another pasal with content.",
-             "heading": "", "parent_heading": ""},
-        ]
-
-        count = create_chunks(sb, work_id=1, law=law, pasal_nodes=pasal_nodes)
-        assert count == 2
-
-    def test_empty_content_skipped(self):
-        sb = _sb()
-        mock = _qm()
-        sb.table.return_value = mock
-
-        law = {"title_id": "T", "type": "UU", "number": "1", "year": 2020}
-        pasal_nodes = [
-            {"node_id": 1, "number": "1", "content": "", "heading": "", "parent_heading": ""},
-            {"node_id": 2, "number": "2", "content": "short", "heading": "", "parent_heading": ""},
-        ]
-
-        count = create_chunks(sb, work_id=1, law=law, pasal_nodes=pasal_nodes)
-        # Both skipped: empty and < 10 chars
-        assert count == 0
-
-    def test_fallback_to_full_text(self):
-        sb = _sb()
-        mock = _qm()
-        sb.table.return_value = mock
-
-        law = {
-            "title_id": "T", "type": "UU", "number": "1", "year": 2020,
-            "full_text": " ".join(["word"] * 600),  # 600 words -> 2 chunks
-        }
-
-        count = create_chunks(sb, work_id=1, law=law, pasal_nodes=[])
-        assert count == 2
-
-    def test_no_pasals_no_full_text(self):
-        sb = _sb()
-        law = {"title_id": "T", "type": "UU", "number": "1", "year": 2020}
-        count = create_chunks(sb, work_id=1, law=law, pasal_nodes=[])
-        assert count == 0
-
-    def test_batch_insert_called(self):
-        sb = _sb()
-        mock = _qm()
-        sb.table.return_value = mock
-
-        law = {"title_id": "T", "type": "UU", "number": "1", "year": 2020}
-        pasal_nodes = [
-            {"node_id": i, "number": str(i), "content": f"Substantial content for pasal {i} here.",
-             "heading": "", "parent_heading": ""}
-            for i in range(1, 55)
-        ]
-
-        count = create_chunks(sb, work_id=1, law=law, pasal_nodes=pasal_nodes)
-        assert count == 54
-        # Should have 2 batch insert calls (50 + 4)
-        assert mock.insert.call_count == 2

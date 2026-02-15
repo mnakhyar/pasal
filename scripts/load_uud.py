@@ -22,7 +22,7 @@ from parser.ocr_correct import correct_ocr_errors
 from parser.parse_structure import parse_structure, count_pasals
 from loader.load_to_supabase import (
     init_supabase, load_work, cleanup_work_data,
-    load_nodes_by_level, create_chunks,
+    load_nodes_by_level,
 )
 
 PDF_DIR = Path(__file__).parent.parent / "data" / "raw" / "pdfs"
@@ -82,7 +82,7 @@ UUD_RELATIONSHIPS = [
 def process_pdf(pdf_path: Path, metadata: dict) -> dict | None:
     """Extract text from PDF, correct OCR errors, parse structure.
 
-    Returns a law dict compatible with load_work/create_chunks, or None on failure.
+    Returns a law dict compatible with load_work, or None on failure.
     """
     text, stats = extract_text_pymupdf(pdf_path)
     if not text or stats.get("error"):
@@ -243,10 +243,7 @@ def main():
 
         nodes = result.get("nodes", [])
         pasal_nodes = load_nodes_by_level(sb, work_id, nodes)
-        print(f"  Inserted {len(pasal_nodes)} chunk-able nodes")
-
-        chunk_count = create_chunks(sb, work_id, result, pasal_nodes)
-        print(f"  Created {chunk_count} search chunks")
+        print(f"  Inserted {len(pasal_nodes)} content nodes")
 
         work_ids.append(work_id)
         print(f"  OK: work_id={work_id}")

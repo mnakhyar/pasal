@@ -62,8 +62,11 @@ async function DashboardContent() {
       ),
       // Works total (head-only)
       supabase.from("works").select("id", { count: "exact", head: true }),
-      // Chunks total (head-only)
-      supabase.from("legal_chunks").select("id", { count: "exact", head: true }),
+      // Searchable nodes total (head-only)
+      supabase
+        .from("document_nodes")
+        .select("id", { count: "exact", head: true })
+        .in("node_type", ["pasal","ayat","preamble","content","aturan","penjelasan_umum","penjelasan_pasal"]),
       // Recent runs (10 rows)
       supabase
         .from("scraper_runs")
@@ -97,7 +100,7 @@ async function DashboardContent() {
   const totalJobs = Object.values(jobCounts).reduce((a, b) => a + b, 0);
 
   const worksCount = worksResult.count;
-  const chunksCount = chunksResult.count;
+  const searchableNodesCount = chunksResult.count;
   const runs = runsResult.data;
 
   // Build merged type breakdown from parallel count results
@@ -164,12 +167,12 @@ async function DashboardContent() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-sans text-muted-foreground">
-              Search Chunks
+              Pasal &amp; Ayat
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-heading">
-              {(chunksCount || 0).toLocaleString()}
+              {(searchableNodesCount || 0).toLocaleString()}
             </p>
           </CardContent>
         </Card>

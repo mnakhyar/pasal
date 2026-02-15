@@ -310,11 +310,11 @@ def cmd_stats(args: argparse.Namespace) -> None:
         result = sb.table("crawl_jobs").select("id", count="exact").eq("status", status).execute()
         print(f"  {status:>12}: {result.count or 0}")
 
-    # Total works and chunks
+    # Total works and searchable nodes
     works = sb.table("works").select("id", count="exact").execute()
-    chunks = sb.table("legal_chunks").select("id", count="exact").execute()
+    nodes = sb.table("document_nodes").select("id", count="exact").in_("node_type", ["pasal","ayat","preamble","content","aturan","penjelasan_umum","penjelasan_pasal"]).execute()
     print(f"\n  Total works: {works.count or 0}")
-    print(f"  Total chunks: {chunks.count or 0}")
+    print(f"  Searchable nodes: {nodes.count or 0}")
 
     # Recent runs
     try:

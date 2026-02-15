@@ -32,7 +32,7 @@ export default async function AdminPeraturanDetailPage({ params }: PageProps) {
 
   const supabase = await createClient();
 
-  const [workRes, nodesCountRes, chunksCountRes, crawlJobRes, topNodesRes] =
+  const [workRes, nodesCountRes, searchableCountRes, crawlJobRes, topNodesRes] =
     await Promise.all([
       supabase
         .from("works")
@@ -46,9 +46,10 @@ export default async function AdminPeraturanDetailPage({ params }: PageProps) {
         .select("id", { count: "exact", head: true })
         .eq("work_id", workId),
       supabase
-        .from("legal_chunks")
+        .from("document_nodes")
         .select("id", { count: "exact", head: true })
-        .eq("work_id", workId),
+        .eq("work_id", workId)
+        .in("node_type", ["pasal","ayat","preamble","content","aturan","penjelasan_umum","penjelasan_pasal"]),
       supabase
         .from("crawl_jobs")
         .select(
@@ -70,7 +71,7 @@ export default async function AdminPeraturanDetailPage({ params }: PageProps) {
   const work = workRes.data;
   const regType = work.regulation_types as { code: string; name_id: string; hierarchy_level: number };
   const nodesCount = nodesCountRes.count || 0;
-  const chunksCount = chunksCountRes.count || 0;
+  const searchableCount = searchableCountRes.count || 0;
   const crawlJob = crawlJobRes.data;
   const topNodes = topNodesRes.data || [];
   const typeLabel = TYPE_LABELS[regType.code] || regType.name_id;
@@ -362,10 +363,10 @@ export default async function AdminPeraturanDetailPage({ params }: PageProps) {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">
-                  Search Chunks
+                  Searchable Nodes
                 </span>
                 <span className="font-heading text-2xl">
-                  {chunksCount.toLocaleString()}
+                  {searchableCount.toLocaleString()}
                 </span>
               </div>
               {work.slug && (

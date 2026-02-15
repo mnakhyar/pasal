@@ -2,8 +2,7 @@
 
 Reads JSON files from data/parsed/ and inserts into:
 - works (law metadata)
-- document_nodes (hierarchical structure)
-- legal_chunks (search-optimized text chunks)
+- document_nodes (hierarchical structure with FTS)
 
 Usage:
     python load_to_supabase.py [options]
@@ -106,7 +105,7 @@ def load_nodes_recursive(
     sort_offset: int = 0,
     _counter: list[int] | None = None,
 ) -> list[dict]:
-    """Recursively insert document nodes. Returns list of inserted pasal nodes for chunking."""
+    """Recursively insert document nodes. Returns count of content-bearing nodes inserted."""
     pasal_nodes = []
 
     # Use a shared DFS counter to avoid exponential sort_order growth.
@@ -170,7 +169,7 @@ def load_nodes_recursive(
     return pasal_nodes
 
 
-_CHUNK_NODE_TYPES = ("pasal", "preamble", "content", "aturan", "penjelasan_umum", "penjelasan_pasal")
+_CONTENT_NODE_TYPES = ("pasal", "preamble", "content", "aturan", "penjelasan_umum", "penjelasan_pasal")
 
 
 def _flatten_tree(nodes: list[dict]) -> list[dict]:
@@ -252,7 +251,7 @@ def load_nodes_by_level(sb, work_id: int, nodes: list[dict]) -> list[dict]:
                     flat_idx = batch_indices[j]
                     idx_to_db_id[flat_idx] = row["id"]
                     node = flat[flat_idx]["node"]
-                    if node["type"] in _CHUNK_NODE_TYPES:
+                    if node["type"] in _CONTENT_NODE_TYPES:
                         pasal_nodes.append({
                             "node_id": row["id"],
                             "number": node.get("number", ""),
@@ -271,7 +270,7 @@ def load_nodes_by_level(sb, work_id: int, nodes: list[dict]) -> list[dict]:
                         flat_idx = batch_indices[j]
                         idx_to_db_id[flat_idx] = result.data[0]["id"]
                         node = flat[flat_idx]["node"]
-                        if node["type"] in _CHUNK_NODE_TYPES:
+                        if node["type"] in _CONTENT_NODE_TYPES:
                             pasal_nodes.append({
                                 "node_id": result.data[0]["id"],
                                 "number": node.get("number", ""),
@@ -287,115 +286,16 @@ def load_nodes_by_level(sb, work_id: int, nodes: list[dict]) -> list[dict]:
 
 
 def cleanup_work_data(sb, work_id: int) -> None:
-    """Delete existing document_nodes and legal_chunks for a specific work.
+    """Delete existing document_nodes for a specific work.
 
     Order matters: suggestions/revisions reference nodes via FK.
     """
-    tables = ["suggestions", "revisions", "legal_chunks", "document_nodes"]
+    tables = ["suggestions", "revisions", "document_nodes"]
     for table in tables:
         try:
             sb.table(table).delete().eq("work_id", work_id).execute()
         except Exception as e:
             print(f"  Warning: Failed to clean {table} for work {work_id}: {e}")
-
-
-def create_chunks(
-    sb,
-    work_id: int,
-    law: dict,
-    pasal_nodes: list[dict],
-):
-    """Create search chunks from pasal nodes and penjelasan nodes."""
-    chunks = []
-    law_title = law["title_id"]
-    law_type = law["type"]
-    law_number = law["number"]
-    law_year = law["year"]
-
-    for pasal in pasal_nodes:
-        content = pasal["content"]
-        if not content or len(content.strip()) < 10:
-            continue
-
-        node_type = pasal.get("node_type", "pasal")
-
-        # Handle penjelasan nodes
-        if node_type in ("penjelasan_umum", "penjelasan_pasal"):
-            # Skip "Cukup jelas" penjelasan
-            if content.strip().lower().startswith("cukup jelas"):
-                continue
-            if pasal.get("number"):
-                chunk_text = f"{law_title}\nPenjelasan Pasal {pasal['number']}\n\n{content}"
-            else:
-                chunk_text = f"{law_title}\nPenjelasan Umum\n\n{content}"
-            metadata = {
-                "type": law_type,
-                "number": law_number,
-                "year": law_year,
-                "penjelasan": pasal.get("number", "umum"),
-            }
-        elif node_type in ("preamble", "content", "aturan"):
-            heading = pasal.get("heading", node_type)
-            chunk_text = f"{law_title}\n{heading}\n\n{content}" if heading else f"{law_title}\n\n{content}"
-            metadata = {
-                "type": law_type,
-                "number": law_number,
-                "year": law_year,
-                "section": node_type,
-            }
-        else:
-            # Prepend context for better keyword search
-            chunk_text = f"{law_title}\nPasal {pasal['number']}\n\n{content}"
-            metadata = {
-                "type": law_type,
-                "number": law_number,
-                "year": law_year,
-                "pasal": pasal["number"],
-            }
-
-        chunks.append({
-            "work_id": work_id,
-            "node_id": pasal["node_id"],
-            "content": chunk_text,
-            "metadata": metadata,
-        })
-
-    # Also create a chunk from the full text if we have no pasal-level chunks
-    # (for laws where parsing didn't extract any pasals)
-    if not chunks and law.get("full_text"):
-        text = law["full_text"]
-        # Split into ~500 char chunks
-        words = text.split()
-        chunk_size = 300  # words
-        for i in range(0, len(words), chunk_size):
-            chunk_words = words[i:i + chunk_size]
-            chunk_text = f"{law_title}\n\n{' '.join(chunk_words)}"
-            chunks.append({
-                "work_id": work_id,
-                "content": chunk_text,
-                "metadata": {
-                    "type": law_type,
-                    "number": law_number,
-                    "year": law_year,
-                    "chunk_index": i // chunk_size,
-                },
-            })
-
-    # Batch insert chunks
-    if chunks:
-        for i in range(0, len(chunks), 50):
-            batch = chunks[i:i+50]
-            try:
-                sb.table("legal_chunks").insert(batch).execute()
-            except Exception as e:
-                print(f"  ERROR inserting batch {i}-{i+len(batch)}: {e}")
-                for j, chunk in enumerate(batch):
-                    try:
-                        sb.table("legal_chunks").insert(chunk).execute()
-                    except Exception as e2:
-                        print(f"  ERROR inserting chunk {i+j}: {e2}")
-
-    return len(chunks)
 
 
 def _load_progress() -> set[str]:
@@ -427,7 +327,6 @@ def main():
     if args.force_reload:
         print("Force reload: clearing ALL existing data...")
         try:
-            sb.table("legal_chunks").delete().neq("id", 0).execute()
             sb.table("document_nodes").delete().neq("id", 0).execute()
             sb.table("work_relationships").delete().neq("id", 0).execute()
             sb.table("works").delete().neq("id", 0).execute()
@@ -443,8 +342,7 @@ def main():
     print(f"\nFound {len(json_files)} parsed law files")
 
     total_works = 0
-    total_pasals = 0
-    total_chunks = 0
+    total_nodes = 0
     skipped = 0
     failed = []
 
@@ -483,16 +381,11 @@ def main():
             total_works += 1
             print(f"  Work ID: {work_id}")
 
-            # 3. Insert document nodes
+            # 3. Insert document nodes (FTS column auto-generates on insert)
             nodes = law.get("nodes", [])
             pasal_nodes = load_nodes_recursive(sb, work_id, nodes)
-            total_pasals += len(pasal_nodes)
-            print(f"  Inserted {len(pasal_nodes)} pasal nodes")
-
-            # 4. Create and insert search chunks
-            chunk_count = create_chunks(sb, work_id, law, pasal_nodes)
-            total_chunks += chunk_count
-            print(f"  Created {chunk_count} search chunks")
+            total_nodes += len(pasal_nodes)
+            print(f"  Inserted {len(pasal_nodes)} content nodes")
 
             # Track progress
             loaded_uris.add(frbr_uri)
@@ -515,8 +408,7 @@ def main():
     if failed:
         for fn in failed:
             print(f"  - {fn}")
-    print(f"Pasal nodes: {total_pasals}")
-    print(f"Search chunks: {total_chunks}")
+    print(f"Content nodes: {total_nodes}")
 
 
 def insert_relationships(sb):

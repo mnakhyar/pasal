@@ -23,7 +23,6 @@ from crawler.db import get_sb
 from crawler.state import claim_pending_jobs, update_status
 from loader.load_to_supabase import (
     cleanup_work_data,
-    create_chunks,
     init_supabase,
     load_nodes_by_level,
     load_nodes_recursive,
@@ -262,11 +261,12 @@ def _build_law_dict(job: dict, text: str, nodes: list, detail_metadata: dict | N
 
 def _extract_and_load(
     sb, job: dict, pdf_path: Path, detail_metadata: dict | None = None,
-) -> tuple[int, int, int]:
+) -> tuple[int, int]:
     """Extract text from PDF, parse, and load to Supabase.
 
     Uses the text-first parser pipeline: extract → classify → OCR correct → parse.
-    Returns (work_id, pasal_count, chunk_count).
+    FTS column on document_nodes auto-generates via GENERATED ALWAYS.
+    Returns (work_id, node_count).
     Raises on failure.
     """
     text, _ = extract_text_pymupdf(pdf_path)
@@ -286,9 +286,8 @@ def _extract_and_load(
 
     cleanup_work_data(sb, work_id)
     pasal_nodes = load_nodes_by_level(sb, work_id, nodes)
-    chunk_count = create_chunks(sb, work_id, law, pasal_nodes)
 
-    return work_id, len(pasal_nodes), chunk_count
+    return work_id, len(pasal_nodes)
 
 
 async def _download_pdf(
@@ -458,7 +457,7 @@ async def process_jobs(
                     print(f"    Uploaded to storage: {slug}.pdf")
 
                 # 2. Extract, parse, load
-                work_id, pasal_count, chunk_count = _extract_and_load(
+                work_id, node_count = _extract_and_load(
                     sb, job, pdf_path, detail_metadata=detail_metadata,
                 )
 
@@ -486,7 +485,7 @@ async def process_jobs(
                 db.table("crawl_jobs").update(loaded_update).eq("id", job_id).execute()
 
                 stats["succeeded"] += 1
-                print(f"    OK: {pasal_count} pasals, {chunk_count} chunks, hash={local_hash[:12]}...")
+                print(f"    OK: {node_count} nodes, hash={local_hash[:12]}...")
 
             except httpx.HTTPStatusError as e:
                 error_msg = f"HTTP {e.response.status_code}"
@@ -580,7 +579,7 @@ def reprocess_jobs(
             if stored_hash and stored_hash != current_hash:
                 print(f"    WARNING: PDF hash changed! stored={stored_hash[:12]} current={current_hash[:12]}")
 
-            work_id, pasal_count, chunk_count = _extract_and_load(sb, job, pdf_path)
+            work_id, node_count = _extract_and_load(sb, job, pdf_path)
 
             # Update job
             db.table("crawl_jobs").update({
@@ -593,7 +592,7 @@ def reprocess_jobs(
             }).eq("id", job_id).execute()
 
             stats["succeeded"] += 1
-            print(f"    OK: {pasal_count} pasals, {chunk_count} chunks")
+            print(f"    OK: {node_count} nodes")
 
         except Exception as e:
             update_status(job_id, "failed", _sanitize_error(f"reprocess: {e}"))

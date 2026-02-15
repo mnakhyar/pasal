@@ -33,9 +33,10 @@ export async function GET() {
   const { count: worksCount } = await supabase
     .from("works")
     .select("id", { count: "exact", head: true });
-  const { count: chunksCount } = await supabase
-    .from("legal_chunks")
-    .select("id", { count: "exact", head: true });
+  const { count: searchableNodesCount } = await supabase
+    .from("document_nodes")
+    .select("id", { count: "exact", head: true })
+    .in("node_type", ["pasal","ayat","preamble","content","aturan","penjelasan_umum","penjelasan_pasal"]);
 
   // Recent runs
   const { data: recentRuns } = await supabase
@@ -48,7 +49,7 @@ export async function GET() {
     jobs: jobCounts,
     total_jobs: Object.values(jobCounts).reduce((a, b) => a + b, 0),
     works: worksCount || 0,
-    chunks: chunksCount || 0,
+    searchable_nodes: searchableNodesCount || 0,
     recent_runs: recentRuns || [],
   });
 }
