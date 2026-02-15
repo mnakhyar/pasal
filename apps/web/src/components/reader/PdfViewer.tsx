@@ -59,19 +59,21 @@ export default function PdfViewer({ slug, sourcePdfUrl, page, onPageChange }: Pd
 
       <div className="relative min-h-[400px] flex items-center justify-center">
         {hasError ? (
-          sourcePdfUrl ? (
-            <iframe
-              src={sourcePdfUrl}
-              title={`PDF Sumber — Halaman ${page}`}
-              sandbox="allow-same-origin"
-              className="w-full h-[80vh] border-0"
-            />
-          ) : (
-            <div className="text-center p-8 text-muted-foreground">
-              <FileText className="h-12 w-12 mx-auto mb-3 opacity-20" aria-hidden="true" />
-              <p className="text-sm mb-2">Halaman PDF tidak tersedia.</p>
-            </div>
-          )
+          <div className="text-center p-8 text-muted-foreground">
+            <FileText className="h-12 w-12 mx-auto mb-3 opacity-20" aria-hidden="true" />
+            <p className="text-sm mb-2">Pratinjau halaman tidak tersedia.</p>
+            {sourcePdfUrl && (
+              <a
+                href={sourcePdfUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-sm text-primary hover:text-primary/80"
+              >
+                <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                Buka PDF Asli
+              </a>
+            )}
+          </div>
         ) : (
           <img
             src={imageUrl}
