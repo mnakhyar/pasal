@@ -122,7 +122,7 @@ async function SearchResults({ query, filters, page }: SearchResultsProps) {
 
   const { data: chunks, error } = await supabase.rpc("search_legal_chunks", {
     query_text: query,
-    match_count: 200,
+    match_count: 30,
     metadata_filter: metadataFilter,
   });
 

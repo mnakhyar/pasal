@@ -79,7 +79,7 @@ All steps run in a single transaction. If any fails, everything rolls back.
 
 ### Search: `search_legal_chunks()`
 
-3-layer search (migration 039). Layer 1: **Identity fast path** — detects regulation identifiers (e.g. "uu 10 2011", "uud 1945") via code/name_id match + number extraction, returns deterministic score 1000. Handles codes, two-word codes (TAP_MPR), aliases (PERPU→PERPPU), and full name_id prefixes ("Undang-Undang Nomor 10"). Input sanitized (`[^a-zA-Z0-9 ]` → space) to prevent tsquery crashes. Layer 2: **Works FTS** — searches `works.search_fts` for title/topic queries ("ketenagakerjaan"), score ~1-15. Layer 3: **Content FTS** — 3-tier fallback on `document_nodes.fts` (`websearch_to_tsquery` > `plainto_tsquery` > `ILIKE`), score ~0.01-0.5. Results accumulate via `RETURN QUERY`; client `groupChunksByWork()` deduplicates by work_id keeping highest score. The function name is intentionally preserved — 5 consumers call it via `.rpc("search_legal_chunks")`.
+3-layer search (migration 039, perf-optimized in 043). Layer 1: **Identity fast path** — detects regulation identifiers (e.g. "uu 10 2011", "uud 1945") via code/name_id match + number extraction, returns deterministic score 1000. **Early exit** — if identity match found, skips Layers 2-3. Handles codes, two-word codes (TAP_MPR), aliases (PERPU→PERPPU), and full name_id prefixes ("Undang-Undang Nomor 10"). Input sanitized (`[^a-zA-Z0-9 ]` → space) to prevent tsquery crashes. Layer 2: **Works FTS** — searches `works.search_fts` for title/topic queries ("ketenagakerjaan"), score ~1-15. Early exit if enough results. Layer 3: **Content FTS** — 3-tier fallback on `document_nodes.fts` (`websearch_to_tsquery` > `plainto_tsquery` > `ILIKE`), score ~0.01-0.5. Uses **CTE pattern**: candidates (capped at 500) → rank → ts_headline only on top N results (avoids O(N) snippet generation). Tier 3 ILIKE capped at 200 candidates. Results accumulate via `RETURN QUERY`; client `groupChunksByWork()` deduplicates by work_id keeping highest score. The function name is intentionally preserved — 5 consumers call it via `.rpc("search_legal_chunks")`.
 
 ## Coding Conventions
 
@@ -120,7 +120,7 @@ Uses `next-intl` with `localePrefix: 'as-needed'`. Indonesian (default) has no U
 
 ### SQL migrations
 
-- Numbered sequentially: `packages/supabase/migrations/NNN_description.sql` (next: 040)
+- Numbered sequentially: `packages/supabase/migrations/NNN_description.sql` (next: 044)
 - Always glob `packages/supabase/migrations/*.sql` to verify the next number before creating a new migration.
 - Always add indexes for WHERE/JOIN/ORDER BY columns.
 - Always enable RLS on new tables. Add public read policy for legal data.
