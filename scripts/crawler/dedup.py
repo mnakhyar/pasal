@@ -32,7 +32,7 @@ def get_crawl_stats() -> dict:
     sb = get_sb()
     total = sb.table("crawl_jobs").select("id", count="exact").execute()
     by_status = {}
-    for status in ("pending", "crawling", "downloaded", "parsed", "loaded", "failed"):
+    for status in ("pending", "crawling", "downloaded", "parsed", "loaded", "failed", "no_pdf", "needs_ocr"):
         r = sb.table("crawl_jobs").select("id", count="exact").eq("status", status).execute()
         by_status[status] = r.count or 0
     works_count = sb.table("works").select("id", count="exact").execute()

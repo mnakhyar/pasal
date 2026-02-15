@@ -13,6 +13,19 @@ const STATUS_STYLE: Record<string, string> = {
   parsed: "bg-indigo-100 text-indigo-800",
   loaded: "bg-primary/10 text-primary",
   failed: "bg-destructive/10 text-destructive",
+  no_pdf: "bg-stone-100 text-stone-600",
+  needs_ocr: "bg-orange-100 text-orange-700",
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  pending: "Pending",
+  crawling: "Crawling",
+  downloaded: "Downloaded",
+  parsed: "Parsed",
+  loaded: "Loaded",
+  failed: "Failed",
+  no_pdf: "No PDF",
+  needs_ocr: "Needs OCR",
 };
 
 const STATUSES = [
@@ -22,6 +35,8 @@ const STATUSES = [
   "parsed",
   "loaded",
   "failed",
+  "no_pdf",
+  "needs_ocr",
 ] as const;
 
 interface JobRow {
@@ -110,7 +125,7 @@ async function JobsList({ status, type, page }: { status?: string; type?: string
                   </td>
                   <td className="py-2 pr-3">
                     <Badge className={STATUS_STYLE[job.status] || ""} variant="outline">
-                      {job.status}
+                      {STATUS_LABEL[job.status] || job.status}
                     </Badge>
                   </td>
                   <td
@@ -213,7 +228,7 @@ export default async function ScraperJobsPage({
                       : `cursor-pointer ${STATUS_STYLE[s]}`
                   }
                 >
-                  {s}
+                  {STATUS_LABEL[s] || s}
                 </Badge>
               </Link>
             ))}

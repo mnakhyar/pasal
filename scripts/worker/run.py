@@ -306,7 +306,7 @@ def cmd_stats(args: argparse.Namespace) -> None:
 
     # Job counts by status
     print("=== CRAWL JOB STATS ===")
-    for status in ["pending", "crawling", "downloaded", "parsed", "loaded", "failed"]:
+    for status in ["pending", "crawling", "downloaded", "parsed", "loaded", "failed", "no_pdf", "needs_ocr"]:
         result = sb.table("crawl_jobs").select("id", count="exact").eq("status", status).execute()
         print(f"  {status:>12}: {result.count or 0}")
 

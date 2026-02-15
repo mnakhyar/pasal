@@ -94,7 +94,8 @@ def load_work(sb, law: dict) -> int | None:
         if result.data:
             return result.data[0]["id"]
     except Exception as e:
-        print(f"  ERROR inserting work: {e}")
+        # Propagate the actual error so callers can store it in error_message
+        raise RuntimeError(f"upsert work {law.get('frbr_uri', '?')}: {e}") from e
     return None
 
 

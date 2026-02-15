@@ -36,9 +36,17 @@ from parser.parse_structure import parse_structure
 
 _FILE_PATH_RE = re.compile(r"(?:/[\w.-]+){2,}")  # strip absolute file paths from errors
 
+
+class NoPdfError(Exception):
+    """The source page exists but has no downloadable PDF."""
+
+
+class NeedsOcrError(Exception):
+    """The PDF is a scanned image with insufficient text for parsing."""
+
 PDF_DIR = Path(__file__).parent.parent.parent / "data" / "raw" / "pdfs"
 STORAGE_BUCKET = "regulation-pdfs"
-MAX_PDF_SIZE = 100 * 1024 * 1024  # 100 MB
+MAX_PDF_SIZE = 500 * 1024 * 1024  # 500 MB
 
 
 def _sanitize_slug(raw: str) -> str:
@@ -279,7 +287,7 @@ def _extract_and_load(
     """
     text, _ = extract_text_pymupdf(pdf_path)
     if not text or len(text) < 100:
-        raise ValueError(f"PDF text too short ({len(text)} chars)")
+        raise NeedsOcrError(f"PDF text too short ({len(text) if text else 0} chars)")
 
     quality, _ = classify_pdf_quality(pdf_path)
     # OCR correction for all PDFs — even born_digital has font-encoding artifacts
@@ -290,7 +298,7 @@ def _extract_and_load(
 
     work_id = load_work(sb, law)
     if not work_id:
-        raise ValueError("Failed to upsert work")
+        raise ValueError(f"Failed to upsert work for {law['frbr_uri']}")
 
     cleanup_work_data(sb, work_id)
     pasal_nodes = load_nodes_by_level(sb, work_id, nodes)
@@ -333,7 +341,7 @@ async def _download_pdf(
     candidates = list(dict.fromkeys(candidates))
 
     if not candidates:
-        raise ValueError(
+        raise NoPdfError(
             f"No PDF URL found | detail_page: {detail_url} | stored: {stored_pdf_url}"
         )
 
@@ -389,7 +397,7 @@ async def process_jobs(
     Downloads PDF (or uses cached copy), parses, loads to Supabase.
     Tracks PDF hash, size, and download timestamp for reproducibility.
     """
-    stats = {"processed": 0, "succeeded": 0, "failed": 0, "skipped": 0}
+    stats = {"processed": 0, "succeeded": 0, "failed": 0, "skipped": 0, "no_pdf": 0, "needs_ocr": 0}
     start_time = time.time()
 
     jobs = claim_pending_jobs(limit=batch_size)
@@ -500,6 +508,39 @@ async def process_jobs(
 
                 stats["succeeded"] += 1
                 print(f"    OK: {node_count} nodes, hash={local_hash[:12]}...")
+
+            except NoPdfError as e:
+                # Not an error — the source simply has no PDF
+                update_status(job_id, "no_pdf", _sanitize_error(str(e)))
+                stats["no_pdf"] += 1
+                print(f"    NO_PDF: {e}")
+
+            except NeedsOcrError as e:
+                # Image-only PDF — store metadata and PDF, mark for future OCR
+                error_msg = _sanitize_error(str(e))
+                print(f"    NEEDS_OCR: {error_msg}")
+                try:
+                    # Still create the work record with available metadata
+                    law = _build_law_dict(job, "", [], detail_metadata=detail_metadata)
+                    work_id = load_work(sb, law)
+                    # Upload PDF if it was downloaded
+                    storage_url = None
+                    if pdf_path.exists() and pdf_path.stat().st_size >= 1000:
+                        storage_url = _upload_to_storage(db, slug, pdf_path.read_bytes())
+                    ocr_update: dict = {
+                        "status": "needs_ocr",
+                        "error_message": error_msg,
+                        "updated_at": datetime.now(timezone.utc).isoformat(),
+                    }
+                    if work_id:
+                        ocr_update["work_id"] = work_id
+                    if storage_url:
+                        ocr_update["pdf_storage_url"] = storage_url
+                    db.table("crawl_jobs").update(ocr_update).eq("id", job_id).execute()
+                except Exception as inner:
+                    print(f"    Warning: needs_ocr bookkeeping failed: {inner}")
+                    update_status(job_id, "needs_ocr", error_msg)
+                stats["needs_ocr"] += 1
 
             except httpx.HTTPStatusError as e:
                 error_msg = f"HTTP {e.response.status_code}"

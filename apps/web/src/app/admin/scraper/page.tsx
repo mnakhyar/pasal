@@ -12,6 +12,8 @@ const STATUS_ORDER = [
   "parsed",
   "loaded",
   "failed",
+  "no_pdf",
+  "needs_ocr",
 ] as const;
 
 const STATUS_STYLE: Record<string, string> = {
@@ -21,8 +23,21 @@ const STATUS_STYLE: Record<string, string> = {
   parsed: "bg-indigo-100 text-indigo-800",
   loaded: "bg-primary/10 text-primary",
   failed: "bg-destructive/10 text-destructive",
+  no_pdf: "bg-stone-100 text-stone-600",
+  needs_ocr: "bg-orange-100 text-orange-700",
   running: "bg-amber-100 text-amber-800",
   completed: "bg-primary/10 text-primary",
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  pending: "Pending",
+  crawling: "Crawling",
+  downloaded: "Downloaded",
+  parsed: "Parsed",
+  loaded: "Loaded",
+  failed: "Failed",
+  no_pdf: "No PDF",
+  needs_ocr: "Needs OCR",
 };
 
 interface RunRow {
@@ -143,8 +158,8 @@ async function DashboardContent() {
         {STATUS_ORDER.map((status) => (
           <Card key={status}>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-sans text-muted-foreground capitalize">
-                {status}
+              <CardTitle className="text-sm font-sans text-muted-foreground">
+                {STATUS_LABEL[status] || status}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -154,6 +169,10 @@ async function DashboardContent() {
                     ? "text-primary"
                     : status === "failed"
                     ? "text-destructive"
+                    : status === "no_pdf"
+                    ? "text-stone-500"
+                    : status === "needs_ocr"
+                    ? "text-orange-600"
                     : ""
                 }`}
               >
