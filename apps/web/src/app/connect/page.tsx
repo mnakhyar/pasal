@@ -92,81 +92,93 @@ export default function ConnectPage() {
     <div className="min-h-screen">
       <Header />
 
-      <main className="container mx-auto max-w-3xl px-4 py-12">
-        <div className="space-y-12">
-          {/* Hero */}
-          <div className="text-center space-y-3">
-            <h1 className="font-heading text-4xl tracking-tight">
-              Hubungkan ke Claude
-            </h1>
-            <p className="text-lg text-muted-foreground">
-              Berikan Claude akses langsung ke hukum Indonesia — tanpa halusinasi,
-              dengan sitasi nyata.
-            </p>
-          </div>
-
-          {/* Install Command — Claude Code */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-heading text-xl">Claude Code</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Jalankan perintah ini di terminal Claude Code:
-              </p>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 rounded-lg bg-muted px-3 py-2 text-sm font-mono break-all">
-                  {INSTALL_CMD}
-                </code>
-                <CopyButton text={INSTALL_CMD} label="Salin" />
+      <main className="container mx-auto px-4 py-12">
+        {/* Two-column hero: instructions + demo side by side */}
+        <div className="max-w-6xl mx-auto mb-16">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
+            {/* Left column: Connect instructions */}
+            <div className="space-y-8">
+              <div className="space-y-3">
+                <h1 className="font-heading text-4xl tracking-tight text-pretty">
+                  Hubungkan ke Claude
+                </h1>
+                <p className="text-lg text-muted-foreground">
+                  Berikan Claude akses langsung ke hukum Indonesia — tanpa
+                  halusinasi, dengan sitasi nyata.
+                </p>
               </div>
-            </CardContent>
-          </Card>
 
-          {/* Claude Desktop JSON Config */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-heading text-xl">Claude Desktop</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Tambahkan konfigurasi berikut ke file{" "}
-                <code className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">
-                  claude_desktop_config.json
-                </code>{" "}
-                Anda:
-              </p>
-              <div className="relative">
-                <pre className="rounded-lg bg-muted px-4 py-3 text-sm font-mono overflow-x-auto">
-                  {CLAUDE_DESKTOP_CONFIG}
-                </pre>
-                <div className="absolute top-2 right-2">
-                  <CopyButton text={CLAUDE_DESKTOP_CONFIG} label="Salin" />
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Buka Claude Desktop, masuk ke Settings &rarr; Developer &rarr; Edit Config, lalu tempel konfigurasi di atas.
-              </p>
-            </CardContent>
-          </Card>
+              {/* Install Command — Claude Code */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="font-heading text-xl">
+                    Claude Code
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Jalankan perintah ini di terminal Claude Code:
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 rounded-lg bg-muted px-3 py-2 text-sm font-mono break-all">
+                      {INSTALL_CMD}
+                    </code>
+                    <CopyButton text={INSTALL_CMD} label="Salin" />
+                  </div>
+                </CardContent>
+              </Card>
 
-          {/* Live MCP Demo */}
-          <section className="space-y-4">
-            <div className="text-center space-y-2">
-              <h2 className="font-heading text-2xl tracking-tight">
-                Lihat MCP Beraksi
-              </h2>
-              <p className="text-sm text-muted-foreground max-w-lg mx-auto">
-                Demo otomatis: Claude menggunakan 4 tool Pasal.id
-                untuk menjawab pertanyaan hukum dengan kutipan akurat.
-              </p>
+              {/* Claude Desktop JSON Config */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="font-heading text-xl">
+                    Claude Desktop
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Tambahkan konfigurasi berikut ke file{" "}
+                    <code className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">
+                      claude_desktop_config.json
+                    </code>{" "}
+                    Anda:
+                  </p>
+                  <div className="relative">
+                    <pre className="rounded-lg bg-muted px-4 py-3 text-sm font-mono overflow-x-auto">
+                      {CLAUDE_DESKTOP_CONFIG}
+                    </pre>
+                    <div className="absolute top-2 right-2">
+                      <CopyButton text={CLAUDE_DESKTOP_CONFIG} label="Salin" />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Buka Claude Desktop, masuk ke Settings &rarr; Developer
+                    &rarr; Edit Config, lalu tempel konfigurasi di atas.
+                  </p>
+                </CardContent>
+              </Card>
             </div>
-            <MCPDemo />
-          </section>
 
+            {/* Right column: Live MCP Demo */}
+            <div className="lg:sticky lg:top-20 space-y-4">
+              <div className="space-y-2">
+                <h2 className="font-heading text-2xl tracking-tight text-pretty">
+                  Lihat MCP Beraksi
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Demo otomatis: Claude menggunakan 4 tool Pasal.id untuk
+                  menjawab pertanyaan hukum dengan kutipan akurat.
+                </p>
+              </div>
+              <MCPDemo />
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-3xl mx-auto space-y-12">
           {/* Cara Kerjanya — How it works */}
           <section className="space-y-6">
-            <h2 className="font-heading text-2xl tracking-tight text-center">
+            <h2 className="font-heading text-2xl tracking-tight text-center text-pretty">
               Cara Kerjanya
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -177,7 +189,7 @@ export default function ConnectPage() {
                       <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-sans font-semibold">
                         {i + 1}
                       </div>
-                      <item.icon className="w-5 h-5 text-muted-foreground" />
+                      <item.icon className="w-5 h-5 text-muted-foreground" aria-hidden="true" />
                     </div>
                     <h3 className="font-heading text-lg">{item.title}</h3>
                     <p className="text-sm text-muted-foreground">{item.description}</p>
@@ -190,7 +202,7 @@ export default function ConnectPage() {
           {/* MCP Tools Grid */}
           <section className="space-y-6">
             <div className="text-center space-y-2">
-              <h2 className="font-heading text-2xl tracking-tight">
+              <h2 className="font-heading text-2xl tracking-tight text-pretty">
                 Tool yang Tersedia
               </h2>
               <p className="text-sm text-muted-foreground">
@@ -202,7 +214,7 @@ export default function ConnectPage() {
                 <Card key={tool.name}>
                   <CardContent className="p-6 space-y-3">
                     <div className="flex items-center gap-3">
-                      <tool.icon className="w-5 h-5 text-primary" />
+                      <tool.icon className="w-5 h-5 text-primary" aria-hidden="true" />
                       <code className="font-mono text-sm text-primary">{tool.name}</code>
                     </div>
                     <p className="text-sm font-sans font-medium">{tool.description}</p>
@@ -214,8 +226,8 @@ export default function ConnectPage() {
           </section>
 
           {/* Example Prompts */}
-          <section id="coba-sekarang" className="space-y-6">
-            <h2 className="font-heading text-2xl tracking-tight text-center">
+          <section id="coba-sekarang" className="space-y-6 scroll-mt-20">
+            <h2 className="font-heading text-2xl tracking-tight text-center text-pretty">
               Coba Sekarang
             </h2>
             <div className="space-y-3">
@@ -269,3 +281,4 @@ export default function ConnectPage() {
     </div>
   );
 }
+

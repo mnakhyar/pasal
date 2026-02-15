@@ -51,11 +51,11 @@ export default function DemoToolCall({ name, input, result, showResult }: Props)
             transition={{ duration: 1.2, repeat: Infinity }}
             className="ml-auto text-xs text-muted-foreground"
           >
-            memproses...
+            memproses…
           </motion.span>
         )}
         {showResult && (
-          <span className="ml-auto text-xs text-status-berlaku">✓</span>
+          <span className="ml-auto text-xs text-status-berlaku" aria-hidden="true">✓</span>
         )}
       </div>
 

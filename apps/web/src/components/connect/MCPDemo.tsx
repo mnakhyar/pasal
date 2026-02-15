@@ -84,7 +84,7 @@ export default function MCPDemo() {
             </span>
           </div>
           {state.isPlaying && (
-            <span className="h-2 w-2 rounded-full bg-status-berlaku animate-pulse" />
+            <span className="h-2 w-2 rounded-full bg-status-berlaku animate-pulse" aria-hidden="true" />
           )}
         </div>
 

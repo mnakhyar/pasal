@@ -16,7 +16,7 @@ export default function DemoThinkingIndicator({ text }: { text: string }) {
       animate="show"
       className="flex items-center gap-2 text-sm text-muted-foreground"
     >
-      <div className="flex gap-1" aria-label="Memproses">
+      <div className="flex gap-1" role="status" aria-label="Memproses">
         {[0, 1, 2].map((i) => (
           <motion.span
             key={i}

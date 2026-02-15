@@ -25,7 +25,7 @@ export default function CopyButton({
       className="text-xs h-7"
       onClick={handleCopy}
     >
-      {copied ? "Tersalin!" : label}
+      <span aria-live="polite">{copied ? "Tersalin!" : label}</span>
     </Button>
   );
 }
