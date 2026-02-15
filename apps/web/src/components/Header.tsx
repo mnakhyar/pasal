@@ -33,7 +33,7 @@ export default function Header({ showSearch = false, searchDefault }: HeaderProp
             href="/connect"
             className="rounded-lg bg-primary px-4 py-2 text-sm font-sans font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Connect Claude
+            Hubungkan Claude
           </Link>
         </nav>
       </div>
