@@ -29,9 +29,9 @@ function defaultTemplate() {
       {/* PasalLogo SVG */}
       <svg
         viewBox="0 0 200 200"
-        width="84"
-        height="84"
-        style={{ marginBottom: "28px" }}
+        width="110"
+        height="110"
+        style={{ marginBottom: "38px" }}
       >
         <circle cx="100" cy="100" r="72" stroke="#1D1A18" strokeWidth="8" fill="none" />
         <line x1="100" y1="56" x2="100" y2="144" stroke="#1D1A18" strokeWidth="4.5" strokeLinecap="round" />
@@ -42,10 +42,10 @@ function defaultTemplate() {
       {/* Heading */}
       <div
         style={{
-          fontSize: "60px",
+          fontSize: "80px",
           color: "#1D1A18",
           lineHeight: 1.15,
-          marginBottom: "16px",
+          marginBottom: "22px",
           textAlign: "center",
         }}
       >
@@ -55,10 +55,10 @@ function defaultTemplate() {
       {/* Subheading */}
       <div
         style={{
-          fontSize: "30px",
+          fontSize: "40px",
           color: "#68625E",
           fontStyle: "italic",
-          marginBottom: "36px",
+          marginBottom: "48px",
         }}
       >
         Hukum Indonesia, terbuka untuk semua
@@ -69,9 +69,9 @@ function defaultTemplate() {
         style={{
           display: "flex",
           alignItems: "center",
-          width: "520px",
-          height: "52px",
-          borderRadius: "12px",
+          width: "680px",
+          height: "68px",
+          borderRadius: "16px",
           border: "1.5px solid #DDD6D1",
           backgroundColor: "#FFFFFF",
           overflow: "hidden",
@@ -82,8 +82,8 @@ function defaultTemplate() {
             display: "flex",
             alignItems: "center",
             flex: 1,
-            paddingLeft: "20px",
-            fontSize: "18px",
+            paddingLeft: "28px",
+            fontSize: "24px",
             color: "#A8A29E",
             fontFamily: "Instrument Sans",
           }}
@@ -96,10 +96,10 @@ function defaultTemplate() {
             alignItems: "center",
             justifyContent: "center",
             height: "100%",
-            padding: "0 24px",
+            padding: "0 32px",
             backgroundColor: "#2B6150",
             color: "#FFFFFF",
-            fontSize: "18px",
+            fontSize: "24px",
             fontFamily: "Instrument Sans",
           }}
         >
