@@ -9,6 +9,7 @@ import PasalLogo from "@/components/PasalLogo";
 import StaggeredList from "@/components/StaggeredList";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getRegTypeCode } from "@/lib/get-reg-type-code";
 import type { ChunkResult } from "@/lib/group-search-results";
 import { groupChunksByWork, formatPasalList } from "@/lib/group-search-results";
@@ -16,9 +17,12 @@ import { STATUS_COLORS, STATUS_LABELS } from "@/lib/legal-status";
 import { workSlug } from "@/lib/work-url";
 import { createClient } from "@/lib/supabase/server";
 
+const PAGE_SIZE = 10;
+
 interface SearchParams {
   q?: string;
   type?: string;
+  page?: string;
 }
 
 export async function generateMetadata({
@@ -62,16 +66,17 @@ function formatRelevance(score: number, maxScore: number): string {
 interface SearchResultsProps {
   query: string;
   type?: string;
+  page: number;
 }
 
-async function SearchResults({ query, type }: SearchResultsProps) {
+async function SearchResults({ query, type, page }: SearchResultsProps) {
   const supabase = await createClient();
 
   const metadataFilter = type ? { type: type.toUpperCase() } : {};
 
   const { data: chunks, error } = await supabase.rpc("search_legal_chunks", {
     query_text: query,
-    match_count: 50,
+    match_count: 200,
     metadata_filter: metadataFilter,
   });
 
@@ -99,8 +104,15 @@ async function SearchResults({ query, type }: SearchResultsProps) {
   // Group chunks by regulation
   const grouped = groupChunksByWork(chunks as ChunkResult[]);
 
-  // Fetch work metadata for all results
-  const workIds = grouped.map((g) => g.work_id);
+  // Pagination
+  const totalResults = grouped.length;
+  const totalPages = Math.ceil(totalResults / PAGE_SIZE);
+  const currentPage = Math.min(Math.max(page, 1), Math.max(totalPages, 1));
+  const offset = (currentPage - 1) * PAGE_SIZE;
+  const pageResults = grouped.slice(offset, offset + PAGE_SIZE);
+
+  // Fetch work metadata for all results on this page
+  const workIds = pageResults.map((g) => g.work_id);
   const { data: works } = await supabase
     .from("works")
     .select("id, frbr_uri, title_id, number, year, status, slug, regulation_types(code)")
@@ -110,16 +122,27 @@ async function SearchResults({ query, type }: SearchResultsProps) {
 
   const maxScore = Math.max(...grouped.map((g) => g.bestScore), 0.001);
 
+  function pageUrl(p: number) {
+    const params = new URLSearchParams();
+    params.set("q", query);
+    if (type) params.set("type", type);
+    if (p > 1) params.set("page", String(p));
+    return `/search?${params.toString()}`;
+  }
+
   return (
     <div className="space-y-4">
       <DisclaimerBanner />
 
       <p className="text-sm text-muted-foreground">
-        {grouped.length} peraturan ditemukan untuk &ldquo;{query}&rdquo;
+        Menampilkan {totalResults} peraturan untuk &ldquo;{query}&rdquo;
+        {totalPages > 1 && (
+          <> &middot; Halaman {currentPage} dari {totalPages}</>
+        )}
       </p>
 
       <StaggeredList className="space-y-4">
-        {grouped.map((group) => {
+        {pageResults.map((group) => {
           const work = worksMap.get(group.work_id);
           if (!work) return null;
 
@@ -168,6 +191,56 @@ async function SearchResults({ query, type }: SearchResultsProps) {
           );
         })}
       </StaggeredList>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <nav aria-label="Halaman" className="flex items-center justify-center gap-2 mt-8">
+          {currentPage > 1 && (
+            <Link
+              href={pageUrl(currentPage - 1)}
+              aria-label="Halaman sebelumnya"
+              className="rounded-lg border bg-card px-3 py-2 text-sm hover:border-primary/30"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Link>
+          )}
+
+          {Array.from({ length: Math.min(7, totalPages) }, (_, i) => {
+            let page: number;
+            if (totalPages <= 7 || currentPage <= 4) {
+              page = i + 1;
+            } else if (currentPage >= totalPages - 3) {
+              page = totalPages - 6 + i;
+            } else {
+              page = currentPage - 3 + i;
+            }
+            return (
+              <Link
+                key={page}
+                href={pageUrl(page)}
+                aria-current={page === currentPage ? "page" : undefined}
+                className={`rounded-lg border px-3 py-2 text-sm ${
+                  page === currentPage
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-card hover:border-primary/30"
+                }`}
+              >
+                {page}
+              </Link>
+            );
+          })}
+
+          {currentPage < totalPages && (
+            <Link
+              href={pageUrl(currentPage + 1)}
+              aria-label="Halaman berikutnya"
+              className="rounded-lg border bg-card px-3 py-2 text-sm hover:border-primary/30"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Link>
+          )}
+        </nav>
+      )}
     </div>
   );
 }
@@ -180,6 +253,7 @@ export default async function SearchPage({
   const params = await searchParams;
   const query = params.q || "";
   const type = params.type;
+  const page = Math.max(1, parseInt(params.page || "1", 10) || 1);
 
   return (
     <div className="min-h-screen">
@@ -196,7 +270,7 @@ export default async function SearchPage({
               </div>
             }
           >
-            <SearchResults query={query} type={type} />
+            <SearchResults query={query} type={type} page={page} />
           </Suspense>
         ) : (
           <div className="text-center py-16">

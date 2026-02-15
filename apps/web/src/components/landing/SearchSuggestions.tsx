@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 const suggestions = [
+  "uud 1945",
   "hak pekerja kontrak",
   "perlindungan konsumen",
   "pidana korupsi",

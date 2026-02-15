@@ -35,7 +35,7 @@ export default function SearchBar({
         type="search"
         name="q"
         aria-label="Cari hukum Indonesia"
-        placeholder={'Cari hukum Indonesia\u2026 (cth: "ketenagakerjaan", "perkawinan")'}
+        placeholder={'Cari hukum Indonesia\u2026 (cth: "ketenagakerjaan", "uud 1945")'}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         className="h-12 text-base"
