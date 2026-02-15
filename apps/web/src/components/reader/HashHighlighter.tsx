@@ -1,0 +1,98 @@
+"use client";
+
+import { useEffect, useRef } from "react";
+import { animate, type AnimationPlaybackControls } from "framer-motion";
+
+const BORDER_COLOR = "oklch(0.450 0.065 170)";
+const BG_COLOR = "oklch(0.450 0.065 170 / 0.04)";
+
+function clearStyles(el: HTMLElement) {
+  el.style.borderLeft = "";
+  el.style.paddingLeft = "";
+  el.style.backgroundColor = "";
+}
+
+export default function HashHighlighter() {
+  const animRef = useRef<AnimationPlaybackControls | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activeElRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+
+    function cancel() {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+      if (animRef.current) {
+        animRef.current.stop();
+        animRef.current = null;
+      }
+      if (activeElRef.current) {
+        clearStyles(activeElRef.current);
+        activeElRef.current = null;
+      }
+    }
+
+    function highlight(hash: string) {
+      if (!hash) return;
+      const id = hash.replace("#", "");
+      const el = document.getElementById(id);
+      if (!el) return;
+
+      cancel();
+
+      activeElRef.current = el;
+      el.style.borderLeft = `4px solid ${BORDER_COLOR}`;
+      el.style.paddingLeft = "12px";
+      el.style.backgroundColor = BG_COLOR;
+
+      if (prefersReducedMotion) {
+        timerRef.current = setTimeout(() => {
+          clearStyles(el);
+          activeElRef.current = null;
+          timerRef.current = null;
+        }, 400);
+        return;
+      }
+
+      timerRef.current = setTimeout(() => {
+        timerRef.current = null;
+        animRef.current = animate(
+          el,
+          {
+            borderLeftColor: "oklch(0.450 0.065 170 / 0)",
+            backgroundColor: "oklch(0.450 0.065 170 / 0)",
+          },
+          {
+            duration: 0.6,
+            ease: [0.4, 0, 0.2, 1],
+            onComplete: () => {
+              clearStyles(el);
+              activeElRef.current = null;
+              animRef.current = null;
+            },
+          },
+        );
+      }, 800);
+    }
+
+    if (window.location.hash) {
+      highlight(window.location.hash);
+    }
+
+    function onHashChange() {
+      highlight(window.location.hash);
+    }
+    window.addEventListener("hashchange", onHashChange);
+    return () => {
+      window.removeEventListener("hashchange", onHashChange);
+      cancel();
+    };
+  }, []);
+
+  return null;
+}

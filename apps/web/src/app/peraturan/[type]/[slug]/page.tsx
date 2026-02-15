@@ -13,6 +13,7 @@ import TableOfContents from "@/components/TableOfContents";
 import AmendmentTimeline from "@/components/reader/AmendmentTimeline";
 import ReaderLayout from "@/components/reader/ReaderLayout";
 import PasalBlock from "@/components/reader/PasalBlock";
+import HashHighlighter from "@/components/reader/HashHighlighter";
 import VerificationBadge from "@/components/reader/VerificationBadge";
 
 export const revalidate = 86400; // ISR: 24 hours
@@ -200,7 +201,7 @@ async function LawReaderSection({
             .sort((a, b) => a.sort_order - b.sort_order);
 
           return (
-            <section key={bab.id} id={`bab-${bab.number}`} className="mb-12">
+            <section key={bab.id} id={`bab-${bab.number}`} className="mb-12 scroll-mt-20">
               <h2 className="font-heading text-lg text-center mb-1">
                 {bab.node_type === "aturan" ? bab.number : `BAB ${bab.number}`}
               </h2>
@@ -234,7 +235,7 @@ async function LawReaderSection({
   return (
     <ReaderLayout
       toc={<TableOfContents babs={babNodes} pasals={pasalNodes} />}
-      content={mainContent}
+      content={<><HashHighlighter />{mainContent}</>}
       sidebar={
         <div className="space-y-4">
           <div className="rounded-lg border p-4">
