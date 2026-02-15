@@ -9,6 +9,7 @@ export const metadata: Metadata = {
     title: "API Dokumentasi | Pasal.id",
     description:
       "API publik Pasal.id untuk mengakses data peraturan Indonesia. Gratis, tanpa autentikasi.",
+    images: [{ url: "/api/og?title=API+Dokumentasi", width: 1200, height: 630 }],
   },
 };
 

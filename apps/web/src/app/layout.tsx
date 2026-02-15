@@ -61,7 +61,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/og-image.png",
+        url: "/api/og",
         width: 1200,
         height: 630,
         alt: "Pasal.id: Cari hukum Indonesia dengan mudah",
@@ -73,7 +73,7 @@ export const metadata: Metadata = {
     title: "Cari Hukum Indonesia | Pasal.id",
     description:
       "Cari undang-undang, PP, Perpres, dan peraturan Indonesia lainnya. Gratis dan open source.",
-    images: ["/og-image.png"],
+    images: ["/api/og"],
   },
   other: {
     "msapplication-TileColor": "#F8F5F0",

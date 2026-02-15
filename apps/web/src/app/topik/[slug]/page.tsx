@@ -30,6 +30,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     openGraph: {
       title: `${topic.title}: Panduan Hukum | Pasal.id`,
       description: topic.description,
+      images: [{ url: `/api/og?title=${encodeURIComponent(topic.title)}`, width: 1200, height: 630 }],
     },
   };
 }

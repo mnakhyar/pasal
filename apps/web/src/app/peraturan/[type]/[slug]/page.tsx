@@ -68,6 +68,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const description = `Baca teks lengkap ${typeLabel} Nomor ${work.number} Tahun ${work.year} tentang ${work.title_id}. Status: ${STATUS_LABELS[work.status] || work.status}.`;
   const url = `https://pasal.id/peraturan/${type.toLowerCase()}/${slug}`;
 
+  const ogParams = new URLSearchParams({
+    page: "law",
+    title: work.title_id,
+    type: type.toUpperCase(),
+    number: work.number,
+    year: String(work.year),
+    status: work.status,
+  });
+  const ogImageUrl = `/api/og?${ogParams.toString()}`;
+
   return {
     title,
     description,
@@ -78,6 +88,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description,
       url,
       type: "article",
+      images: [{ url: ogImageUrl, width: 1200, height: 630, alt: title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImageUrl],
+    },
+    other: {
+      "twitter:label1": "Status",
+      "twitter:data1": STATUS_LABELS[work.status] || work.status,
+      "twitter:label2": "Jenis",
+      "twitter:data2": typeLabel,
     },
   };
 }
