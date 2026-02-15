@@ -27,6 +27,7 @@ from loader.load_to_supabase import (
     load_nodes_by_level,
     load_nodes_recursive,
     load_work,
+    render_page_images,
 )
 from parser.classify_pdf import classify_pdf_quality
 from parser.extract_pymupdf import extract_text_pymupdf
@@ -461,10 +462,13 @@ async def process_jobs(
                     "updated_at": now,
                 }).eq("id", job_id).execute()
 
-                # 1b. Upload PDF to Supabase Storage
+                # 1b. Upload PDF + page images to Supabase Storage
                 storage_url = _upload_to_storage(db, slug, pdf_path.read_bytes())
                 if storage_url:
                     print(f"    Uploaded to storage: {slug}.pdf")
+                page_count = render_page_images(db, pdf_path, slug)
+                if page_count:
+                    print(f"    Rendered {page_count} page images")
 
                 # 2. Extract, parse, load
                 work_id, node_count = _extract_and_load(
@@ -590,6 +594,11 @@ def reprocess_jobs(
                 print(f"    WARNING: PDF hash changed! stored={stored_hash[:12]} current={current_hash[:12]}")
 
             work_id, node_count = _extract_and_load(sb, job, pdf_path)
+
+            # Render page images for PDF viewer
+            page_count = render_page_images(db, pdf_path, slug)
+            if page_count:
+                print(f"    Rendered {page_count} page images")
 
             # Update job
             db.table("crawl_jobs").update({

@@ -288,6 +288,37 @@ def load_nodes_by_level(sb, work_id: int, nodes: list[dict]) -> list[dict]:
     return pasal_nodes
 
 
+def render_page_images(sb, pdf_path: Path, slug: str) -> int:
+    """Render each PDF page as PNG and upload to Supabase Storage.
+
+    Enables the PdfViewer component to show inline page previews.
+    Uploads to regulation-pdfs/{slug}/page-{N}.png (1-indexed).
+    """
+    import pymupdf
+
+    bucket = sb.storage.from_("regulation-pdfs")
+    doc = pymupdf.open(str(pdf_path))
+    count = 0
+
+    for page_num in range(len(doc)):
+        page = doc[page_num]
+        pix = page.get_pixmap(dpi=150)
+        png_bytes = pix.tobytes("png")
+
+        storage_path = f"{slug}/page-{page_num + 1}.png"
+        try:
+            bucket.upload(
+                storage_path, png_bytes,
+                {"content-type": "image/png", "upsert": "true"},
+            )
+            count += 1
+        except Exception as e:
+            print(f"  Page image upload error ({storage_path}): {e}")
+
+    doc.close()
+    return count
+
+
 def cleanup_work_data(sb, work_id: int) -> None:
     """Delete existing document_nodes for a specific work.
 

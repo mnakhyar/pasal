@@ -22,7 +22,7 @@ from parser.ocr_correct import correct_ocr_errors
 from parser.parse_structure import parse_structure, count_pasals
 from loader.load_to_supabase import (
     init_supabase, load_work, cleanup_work_data,
-    load_nodes_by_level,
+    load_nodes_by_level, render_page_images,
 )
 
 PDF_DIR = Path(__file__).parent.parent / "data" / "raw" / "pdfs"
@@ -102,34 +102,6 @@ def process_pdf(pdf_path: Path, metadata: dict) -> dict | None:
         "full_text": text,
         "source_url": "https://peraturan.go.id/id/uud-1945",
     }
-
-
-def render_page_images(sb, pdf_path: Path, slug: str) -> int:
-    """Render each PDF page as PNG and upload to Supabase Storage."""
-    import pymupdf
-
-    bucket = sb.storage.from_("regulation-pdfs")
-    doc = pymupdf.open(str(pdf_path))
-    count = 0
-
-    for page_num in range(len(doc)):
-        page = doc[page_num]
-        pix = page.get_pixmap(dpi=150)
-        png_bytes = pix.tobytes("png")
-
-        storage_path = f"{slug}/page-{page_num + 1}.png"
-        try:
-            bucket.upload(
-                storage_path, png_bytes,
-                {"content-type": "image/png", "upsert": "true"},
-            )
-            count += 1
-        except Exception as e:
-            print(f"  Page image upload error ({storage_path}): {e}")
-
-    doc.close()
-    print(f"  Uploaded {count} page images for {slug}")
-    return count
 
 
 def insert_relationships(sb) -> int:
