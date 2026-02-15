@@ -73,7 +73,7 @@ export default function HomePage() {
       {/* 3. Peraturan Populer — carousel with auto-advance */}
       <Suspense
         fallback={
-          <section className="py-16 sm:py-20">
+          <section className="border-b py-16 sm:py-20">
             <div className="mx-auto max-w-5xl px-4">
               <div className="mx-auto h-10 w-64 rounded bg-muted animate-pulse" />
               <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -94,7 +94,7 @@ export default function HomePage() {
       {/* 4. Browse by Type — regulation type cards */}
       <Suspense
         fallback={
-          <section className="py-16 sm:py-20">
+          <section className="border-b bg-card py-16 sm:py-20">
             <div className="mx-auto max-w-5xl px-4">
               <div className="mx-auto h-10 w-64 rounded bg-muted animate-pulse" />
               <div className="mt-10 grid gap-3 grid-cols-2 sm:grid-cols-3">

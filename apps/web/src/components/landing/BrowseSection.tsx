@@ -33,22 +33,22 @@ export default async function BrowseSection() {
   if (typesWithCounts.length === 0) return null;
 
   return (
-    <section className="py-16 sm:py-20">
+    <section className="border-b bg-card py-16 sm:py-20">
       <RevealOnScroll>
         <div className="mx-auto max-w-5xl px-4">
+          <p className="mb-4 text-center text-xs font-medium uppercase tracking-widest text-muted-foreground">
+            Telusuri Peraturan
+          </p>
           <h2 className="font-heading text-center text-4xl tracking-tight sm:text-5xl">
             Jelajahi Berdasarkan Jenis
           </h2>
-          <p className="mx-auto mt-3 max-w-2xl text-center text-lg text-muted-foreground">
-            Telusuri peraturan berdasarkan kategori
-          </p>
 
           <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
             {typesWithCounts.map((type) => (
               <Link
                 key={type.id}
                 href={`/jelajahi/${type.code.toLowerCase()}`}
-                className="rounded-lg border bg-card p-5 hover:border-primary/30 transition-colors"
+                className="rounded-lg border bg-background p-5 hover:border-primary/30 transition-colors"
               >
                 <div className="flex items-start justify-between mb-2">
                   <FileText className="h-5 w-5 text-primary/60" aria-hidden="true" />

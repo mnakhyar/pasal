@@ -29,10 +29,10 @@ const container = {
 };
 
 const slideIn = {
-  hidden: { opacity: 0, x: -16 },
+  hidden: { opacity: 0, y: 16 },
   show: {
     opacity: 1,
-    x: 0,
+    y: 0,
     transition: { duration: 0.45, ease: EASE_OUT },
   },
 };
@@ -50,13 +50,21 @@ export default function TrustBlock() {
   const isInView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
-    <section ref={ref} className="border-t py-16 sm:py-20">
-      <div className="mx-auto max-w-2xl px-4">
+    <section ref={ref} className="py-16 sm:py-20">
+      <div className="mx-auto max-w-5xl px-4">
+        <m.p
+          initial={{ opacity: 0, y: 16 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.4, ease: EASE_OUT }}
+          className="mb-4 text-center text-xs font-medium uppercase tracking-widest text-muted-foreground"
+        >
+          Mengapa Mempercayai Data Ini
+        </m.p>
         <m.h2
           initial={{ opacity: 0, y: 16 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.5, ease: EASE_OUT }}
-          className="font-heading text-center text-3xl tracking-tight sm:text-4xl"
+          transition={{ duration: 0.5, ease: EASE_OUT, delay: 0.05 }}
+          className="font-heading text-center text-4xl tracking-tight sm:text-5xl"
         >
           Sumber &amp; Transparansi
         </m.h2>
@@ -65,24 +73,22 @@ export default function TrustBlock() {
           variants={container}
           initial="hidden"
           animate={isInView ? "show" : "hidden"}
-          className="mt-10 space-y-6"
+          className="mt-10 grid gap-4 sm:grid-cols-3"
         >
           {ITEMS.map((item) => (
             <m.div
               key={item.title}
               variants={slideIn}
-              className="flex gap-4"
+              className="rounded-lg border bg-card p-6"
             >
               <m.span
                 variants={dotPop}
-                className="mt-0.5 shrink-0 text-primary"
+                className="mb-3 inline-block text-primary"
               >
                 <PasalLogo size={18} />
               </m.span>
-              <div>
-                <p className="font-medium">{item.title}</p>
-                <p className="mt-1 text-muted-foreground">{item.detail}</p>
-              </div>
+              <p className="font-medium">{item.title}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{item.detail}</p>
             </m.div>
           ))}
         </m.div>

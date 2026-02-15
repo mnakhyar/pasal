@@ -88,15 +88,15 @@ export default async function CuratedLaws() {
   });
 
   return (
-    <section className="py-16 sm:py-20">
+    <section className="border-b py-16 sm:py-20">
       <RevealOnScroll>
         <div className="mx-auto max-w-5xl px-4">
+          <p className="mb-4 text-center text-xs font-medium uppercase tracking-widest text-muted-foreground">
+            Paling Sering Diakses
+          </p>
           <h2 className="font-heading text-center text-4xl tracking-tight sm:text-5xl">
             Peraturan Populer
           </h2>
-          <p className="mx-auto mt-3 max-w-2xl text-center text-lg text-muted-foreground">
-            Peraturan yang paling sering diakses
-          </p>
         </div>
       </RevealOnScroll>
 
