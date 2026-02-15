@@ -34,7 +34,7 @@ export default function RevalidateButton() {
           ? "Berhasil!"
           : result === "error"
             ? "Gagal"
-            : "Refresh Cache"}
+            : "Perbarui Cache"}
     </button>
   );
 }

@@ -12,7 +12,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { tags, paths } = await request.json();
+  const { tags, paths } = await request.json().catch(() => ({}));
 
   const revalidated: { tags: string[]; paths: string[] } = {
     tags: [],
