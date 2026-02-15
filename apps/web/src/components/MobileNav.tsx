@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import PasalLogo from "./PasalLogo";
@@ -75,8 +76,8 @@ export default function MobileNav() {
         <Menu className="h-6 w-6" />
       </button>
 
-      {open && (
-        <div className="lg:hidden fixed inset-0 z-50" role="dialog" aria-modal="true">
+      {open && createPortal(
+        <div className="lg:hidden fixed inset-0 z-[100]" role="dialog" aria-modal="true">
           {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/50"
@@ -123,7 +124,8 @@ export default function MobileNav() {
               </Link>
             </nav>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
