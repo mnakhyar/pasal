@@ -22,8 +22,8 @@ const CURATED = [
     tagline: "Perlindungan data pribadi warga negara",
   },
   {
-    frbr_uri: "/akn/id/act/uu/2023/6",
-    tagline: "Omnibus law yang mengubah ratusan pasal",
+    frbr_uri: "/akn/id/act/uud/1945/original",
+    tagline: "Dasar negara dan hukum tertinggi Indonesia",
   },
 ];
 

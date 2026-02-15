@@ -48,7 +48,7 @@ export async function generateMetadata({
       description: t("ogDescription"),
       images: [
         {
-          url: "/og-image.png",
+          url: "/api/og",
           width: 1200,
           height: 630,
           alt: t("ogImageAlt"),
@@ -59,7 +59,7 @@ export async function generateMetadata({
       card: "summary_large_image",
       title: t("siteTitle"),
       description: t("ogDescription"),
-      images: ["/og-image.png"],
+      images: ["/api/og"],
     },
     other: {
       "msapplication-TileColor": "#F8F5F0",

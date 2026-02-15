@@ -12,33 +12,99 @@ function getStatusStyle(status: string): { bg: string; text: string; label: stri
   return { bg: "#EEE8E4", text: "#524C48", label: status };
 }
 
-function defaultTemplate({ title }: { title: string }) {
+function defaultTemplate() {
   return (
     <div
       style={{
         display: "flex",
         flexDirection: "column",
+        alignItems: "center",
         justifyContent: "center",
         width: "100%",
         height: "100%",
         backgroundColor: "#F8F5F0",
-        padding: "80px",
         fontFamily: "Instrument Serif",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "40px" }}>
-        <span style={{ fontSize: "36px", color: "#2B6150" }}>§</span>
-        <span style={{ fontSize: "24px", color: "#1D1A18" }}>Pasal.id</span>
+      {/* PasalLogo SVG */}
+      <svg
+        viewBox="0 0 200 200"
+        width="84"
+        height="84"
+        style={{ marginBottom: "28px" }}
+      >
+        <circle cx="100" cy="100" r="72" stroke="#1D1A18" strokeWidth="8" fill="none" />
+        <line x1="100" y1="56" x2="100" y2="144" stroke="#1D1A18" strokeWidth="4.5" strokeLinecap="round" />
+        <path d="M100,72 C112,66 126,74 126,84 C126,94 112,100 100,96" stroke="#1D1A18" strokeWidth="4.5" strokeLinecap="round" fill="none" />
+        <path d="M100,96 C88,92 74,98 74,108 C74,118 88,126 100,120" stroke="#1D1A18" strokeWidth="4.5" strokeLinecap="round" fill="none" />
+      </svg>
+
+      {/* Heading */}
+      <div
+        style={{
+          fontSize: "60px",
+          color: "#1D1A18",
+          lineHeight: 1.15,
+          marginBottom: "16px",
+          textAlign: "center",
+        }}
+      >
+        Temukan pasal yang Anda butuhkan
       </div>
-      <div style={{ fontSize: "48px", color: "#1D1A18", lineHeight: 1.2, marginBottom: "8px" }}>
-        {title}
+
+      {/* Subheading */}
+      <div
+        style={{
+          fontSize: "30px",
+          color: "#68625E",
+          fontStyle: "italic",
+          marginBottom: "36px",
+        }}
+      >
+        Hukum Indonesia, terbuka untuk semua
       </div>
-      <div style={{ fontSize: "48px", color: "#68625E", fontStyle: "italic", lineHeight: 1.2 }}>
-        dengan mudah
-      </div>
-      <div style={{ width: "120px", height: "1px", backgroundColor: "#DDD6D1", marginTop: "32px", marginBottom: "24px" }} />
-      <div style={{ fontSize: "20px", color: "#524C48", fontFamily: "Instrument Sans", lineHeight: 1.6 }}>
-        Platform hukum Indonesia terbuka pertama berbasis AI
+
+      {/* Search bar mock */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          width: "520px",
+          height: "52px",
+          borderRadius: "12px",
+          border: "1.5px solid #DDD6D1",
+          backgroundColor: "#FFFFFF",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            flex: 1,
+            paddingLeft: "20px",
+            fontSize: "18px",
+            color: "#A8A29E",
+            fontFamily: "Instrument Sans",
+          }}
+        >
+          Cari undang-undang...
+        </div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            height: "100%",
+            padding: "0 24px",
+            backgroundColor: "#2B6150",
+            color: "#FFFFFF",
+            fontSize: "18px",
+            fontFamily: "Instrument Sans",
+          }}
+        >
+          Cari
+        </div>
       </div>
     </div>
   );
@@ -144,16 +210,15 @@ export async function GET(request: NextRequest) {
   const snippet = searchParams.get("snippet") || "";
   const page = searchParams.get("page") || "default";
 
-  const instrumentSerifData = await fetch(
-    new URL("./fonts/InstrumentSerif-Regular.ttf", import.meta.url)
-  ).then((res) => res.arrayBuffer());
-
-  const instrumentSansData = await fetch(
-    new URL("./fonts/InstrumentSans-Regular.ttf", import.meta.url)
-  ).then((res) => res.arrayBuffer());
+  const [instrumentSerifData, instrumentSerifItalicData, instrumentSansData] = await Promise.all([
+    fetch(new URL("./fonts/InstrumentSerif-Regular.ttf", import.meta.url)).then((res) => res.arrayBuffer()),
+    fetch(new URL("./fonts/InstrumentSerif-Italic.ttf", import.meta.url)).then((res) => res.arrayBuffer()),
+    fetch(new URL("./fonts/InstrumentSans-Regular.ttf", import.meta.url)).then((res) => res.arrayBuffer()),
+  ]);
 
   const fonts = [
-    { name: "Instrument Serif", data: instrumentSerifData, weight: 400 as const },
+    { name: "Instrument Serif", data: instrumentSerifData, weight: 400 as const, style: "normal" as const },
+    { name: "Instrument Serif", data: instrumentSerifItalicData, weight: 400 as const, style: "italic" as const },
     { name: "Instrument Sans", data: instrumentSansData, weight: 400 as const },
   ];
 
@@ -165,7 +230,7 @@ export async function GET(request: NextRequest) {
   }
 
   return new ImageResponse(
-    defaultTemplate({ title }),
+    defaultTemplate(),
     { width: 1200, height: 630, fonts }
   );
 }
