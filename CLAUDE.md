@@ -75,7 +75,7 @@ All steps run in a single transaction. If any fails, everything rolls back.
 
 ### Search: `search_legal_chunks()`
 
-3-tier fallback (do not modify): `websearch_to_tsquery` > `plainto_tsquery` > `ILIKE`. Queries `document_nodes` directly (JOINs `works` + `regulation_types`), returns results with `ts_headline` snippets, boosted by hierarchy + recency. Metadata JSONB is constructed on-the-fly via `jsonb_build_object()`.
+3-tier fallback (do not modify): `websearch_to_tsquery` > `plainto_tsquery` > `ILIKE`. Queries `document_nodes` directly (JOINs `works` + `regulation_types`), returns results with `ts_headline` snippets, boosted by hierarchy + recency. Metadata JSONB is constructed on-the-fly via `jsonb_build_object()`. The function name is intentionally preserved from the original `legal_chunks` era — 5 consumers call it via `.rpc("search_legal_chunks")`, so renaming would require cascading changes.
 
 ## Coding Conventions
 
@@ -99,9 +99,11 @@ All steps run in a single transaction. If any fails, everything rolls back.
 ### SQL migrations
 
 - Numbered sequentially: `packages/supabase/migrations/NNN_description.sql` (next: 039)
+- Always glob `packages/supabase/migrations/*.sql` to verify the next number before creating a new migration.
 - Always add indexes for WHERE/JOIN/ORDER BY columns.
 - Always enable RLS on new tables. Add public read policy for legal data.
 - Computed columns use `GENERATED ALWAYS AS`.
+- Heavy migrations (ALTER TABLE on large tables) timeout via `apply_migration` MCP tool. Use `execute_sql` with `SET statement_timeout = '600s'` and run steps individually.
 
 ## Brand & Design
 
@@ -144,6 +146,7 @@ Root `.env` holds all keys (never committed). Each sub-project has its own env f
 
 ## Gotchas
 
+- **When deleting a Python function, grep all `.py` files for importers.** `scripts/worker/process.py` and `scripts/load_uud.py` both import from `loader/load_to_supabase.py` separately from the main loader flow.
 - **RLS blocks empty results.** If a new table returns no data, check that an RLS policy exists — Supabase silently returns `[]` without one.
 - **`SUPABASE_KEY` naming.** MCP server and scripts use `SUPABASE_KEY` but the root `.env` calls it `SUPABASE_SERVICE_ROLE_KEY`. They're the same value.
 - **No vector/embedding search.** `document_nodes.fts` is keyword-only (TSVECTOR). No pgvector, no embeddings.
