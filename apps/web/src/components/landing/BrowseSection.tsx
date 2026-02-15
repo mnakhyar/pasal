@@ -4,31 +4,25 @@ import { TYPE_LABELS } from "@/lib/legal-status";
 import { FileText, ArrowRight } from "lucide-react";
 import RevealOnScroll from "./RevealOnScroll";
 
+// Types to feature on the landing page, in display order
+const FEATURED_TYPES = ["UU", "PP", "PERPRES", "PERMEN", "PERPPU", "PERDA"];
+
 export default async function BrowseSection() {
   const supabase = await createClient();
 
-  const [{ data: types }, { data: allWorks }] = await Promise.all([
-    supabase
-      .from("regulation_types")
-      .select("id, code, name_id, hierarchy_level")
-      .order("hierarchy_level"),
-    supabase.from("works").select("regulation_type_id"),
-  ]);
-
-  // Count works per type client-side instead of N+1 queries
-  const countsByType = new Map<number, number>();
-  for (const w of allWorks || []) {
-    countsByType.set(w.regulation_type_id, (countsByType.get(w.regulation_type_id) || 0) + 1);
-  }
+  const { data: types } = await supabase
+    .from("regulation_types")
+    .select("id, code, name_id, hierarchy_level, works(count)")
+    .order("hierarchy_level");
 
   const typesWithCounts = (types || [])
     .map((t) => ({
       ...t,
-      count: countsByType.get(t.id) || 0,
+      count: (t.works as unknown as { count: number }[])?.[0]?.count ?? 0,
       label: TYPE_LABELS[t.code] || t.name_id,
     }))
-    .filter((t) => t.count > 0)
-    .slice(0, 6); // Show top 6 on landing page
+    .filter((t) => t.count > 0 && FEATURED_TYPES.includes(t.code))
+    .sort((a, b) => FEATURED_TYPES.indexOf(a.code) - FEATURED_TYPES.indexOf(b.code));
 
   if (typesWithCounts.length === 0) return null;
 

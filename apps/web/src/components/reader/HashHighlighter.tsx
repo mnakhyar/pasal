@@ -7,8 +7,7 @@ const BORDER_COLOR = "oklch(0.450 0.065 170)";
 const BG_COLOR = "oklch(0.450 0.065 170 / 0.04)";
 
 function clearStyles(el: HTMLElement) {
-  el.style.borderLeft = "";
-  el.style.paddingLeft = "";
+  el.style.boxShadow = "";
   el.style.backgroundColor = "";
 }
 
@@ -46,8 +45,7 @@ export default function HashHighlighter() {
       cancel();
 
       activeElRef.current = el;
-      el.style.borderLeft = `4px solid ${BORDER_COLOR}`;
-      el.style.paddingLeft = "12px";
+      el.style.boxShadow = `inset 4px 0 0 ${BORDER_COLOR}`;
       el.style.backgroundColor = BG_COLOR;
 
       if (prefersReducedMotion) {
@@ -64,7 +62,7 @@ export default function HashHighlighter() {
         animRef.current = animate(
           el,
           {
-            borderLeftColor: "oklch(0.450 0.065 170 / 0)",
+            boxShadow: "inset 4px 0 0 oklch(0.450 0.065 170 / 0)",
             backgroundColor: "oklch(0.450 0.065 170 / 0)",
           },
           {

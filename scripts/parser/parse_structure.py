@@ -353,12 +353,14 @@ def parse_structure(text: str) -> list[dict]:
 
         elif mtype == "aturan":
             # ATURAN PERALIHAN / ATURAN TAMBAHAN — top-level like BAB
+            rejoined = _rejoin_content_lines(raw_content)
+            ayat_children = _parse_ayat(rejoined)
             current_bab = {
                 "type": "aturan",
                 "number": number,  # "ATURAN PERALIHAN" or "ATURAN TAMBAHAN"
                 "heading": number,
-                "content": raw_content,
-                "children": [],
+                "content": rejoined,
+                "children": ayat_children,
                 "sort_order": sort_order,
             }
             nodes.append(current_bab)

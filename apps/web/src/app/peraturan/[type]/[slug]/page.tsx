@@ -211,6 +211,12 @@ async function LawReaderSection({
                 </p>
               )}
 
+              {allBabPasals.length === 0 && bab.content_text && (
+                <div className="text-sm leading-relaxed whitespace-pre-wrap">
+                  {bab.content_text}
+                </div>
+              )}
+
               {allBabPasals.map((pasal) => (
                 <PasalBlock key={pasal.id} pasal={pasal} pathname={pathname} />
               ))}
