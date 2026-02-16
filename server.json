@@ -14,5 +14,5 @@
   "categories": ["legal", "government", "indonesia", "reference"],
   "homepage": "https://pasal.id",
   "repository": "https://github.com/ilhamfp/pasal",
-  "license": "MIT"
+  "license": "AGPL-3.0"
 }
