@@ -203,6 +203,12 @@
   }
 }
 
+/* Skip rendering for off-screen pasal articles */
+article[id^="pasal-"] {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 200px;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   @keyframes progress-fill {
     from { transform: scaleX(0); }

@@ -83,9 +83,11 @@ export default async function LocaleLayout({
 
   setRequestLocale(locale);
 
-  const t = await getTranslations("navigation");
-  const footerT = await getTranslations("footer");
-  const messages = await getMessages();
+  const [t, footerT, messages] = await Promise.all([
+    getTranslations("navigation"),
+    getTranslations("footer"),
+    getMessages(),
+  ]);
 
   const FOOTER_LINKS = [
     { href: "/" as const, label: t("home") },

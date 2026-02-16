@@ -4,10 +4,12 @@ import { setRequestLocale, getTranslations } from "next-intl/server";
 import type { Locale } from "@/i18n/routing";
 import { BookOpen, Database, FileText, MessageSquare, Quote, Scale, Search, ShieldCheck } from "lucide-react";
 import { getAlternates } from "@/lib/i18n-metadata";
+import nextDynamic from "next/dynamic";
 import Header from "@/components/Header";
 import CopyButton from "@/components/CopyButton";
-import MCPDemo from "@/components/connect/MCPDemo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+const MCPDemo = nextDynamic(() => import("@/components/connect/MCPDemo"));
 
 const MCP_URL = "https://pasal-mcp-server-production.up.railway.app/mcp";
 const INSTALL_CMD = `claude mcp add --transport http pasal-id ${MCP_URL}`;
@@ -46,8 +48,10 @@ export default async function ConnectPage({ params }: PageProps) {
   const { locale } = await params;
   setRequestLocale(locale as Locale);
 
-  const t = await getTranslations("connect");
-  const commonT = await getTranslations("common");
+  const [t, commonT] = await Promise.all([
+    getTranslations("connect"),
+    getTranslations("common"),
+  ]);
 
   const steps = [
     { icon: STEP_ICONS[0], title: t("step1Title"), description: t("step1Description") },

@@ -25,6 +25,22 @@ import { getAlternates } from "@/lib/i18n-metadata";
 
 const PAGE_SIZE = 10;
 
+const SEARCH_SKELETON = (
+  <div className="space-y-4">
+    {[1, 2, 3].map((i) => (
+      <div key={i} className="h-32 rounded-lg bg-muted animate-pulse" />
+    ))}
+  </div>
+);
+
+const BROWSE_LIST_SKELETON = (
+  <div className="space-y-4">
+    {[1, 2, 3].map((i) => (
+      <div key={i} className="h-20 rounded-lg bg-muted animate-pulse" />
+    ))}
+  </div>
+);
+
 interface SearchParams {
   q?: string;
   type?: string;
@@ -43,8 +59,10 @@ export async function generateMetadata({
   const { locale } = await localeParams;
   const params = await searchParams;
   const query = params.q;
-  const t = await getTranslations({ locale: locale as Locale, namespace: "search" });
-  const statusT = await getTranslations({ locale: locale as Locale, namespace: "status" });
+  const [t, statusT] = await Promise.all([
+    getTranslations({ locale: locale as Locale, namespace: "search" }),
+    getTranslations({ locale: locale as Locale, namespace: "status" }),
+  ]);
 
   const parts: string[] = [];
   if (query) parts.push(`"${query}"`);
@@ -472,28 +490,12 @@ export default async function SearchPage({
 
         {query ? (
           /* Search mode: text query + optional filters */
-          <Suspense
-            fallback={
-              <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-32 rounded-lg bg-muted animate-pulse" />
-                ))}
-              </div>
-            }
-          >
+          <Suspense fallback={SEARCH_SKELETON}>
             <SearchResults query={query} filters={filters} page={page} />
           </Suspense>
         ) : hasFilters ? (
           /* Browse mode: no text, but filters applied */
-          <Suspense
-            fallback={
-              <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-20 rounded-lg bg-muted animate-pulse" />
-                ))}
-              </div>
-            }
-          >
+          <Suspense fallback={BROWSE_LIST_SKELETON}>
             <BrowseResults filters={filters} page={page} />
           </Suspense>
         ) : (

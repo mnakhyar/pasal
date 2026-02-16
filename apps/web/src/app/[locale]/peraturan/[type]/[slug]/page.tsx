@@ -2,7 +2,6 @@ import { cache, Suspense } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { setRequestLocale, getTranslations } from "next-intl/server";
-import { useTranslations } from "next-intl";
 import type { Locale } from "@/i18n/routing";
 import { createClient } from "@/lib/supabase/server";
 import { LEGAL_FORCE_MAP, STATUS_COLORS, STATUS_LABELS, TYPE_LABELS, formatRegRef } from "@/lib/legal-status";
@@ -72,8 +71,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!result) return {};
 
   const { work } = result;
-  const t = await getTranslations({ locale: locale as Locale, namespace: "reader" });
-  const statusT = await getTranslations({ locale: locale as Locale, namespace: "status" });
+  const [t, statusT] = await Promise.all([
+    getTranslations({ locale: locale as Locale, namespace: "reader" }),
+    getTranslations({ locale: locale as Locale, namespace: "status" }),
+  ]);
 
   // TYPE_LABELS stay in Indonesian — they are official legal nomenclature
   const typeLabel = TYPE_LABELS[type.toUpperCase()] || type.toUpperCase();
@@ -192,66 +193,54 @@ async function LawReaderSection({
   slug: string;
   pathname: string;
 }) {
-  const t = await getTranslations("reader");
-  const statusT = await getTranslations("status");
+  const [t, statusT] = await Promise.all([
+    getTranslations("reader"),
+    getTranslations("status"),
+  ]);
   const supabase = await createClient();
 
-  // Check total pasal count first to decide fetch strategy
-  const { count: totalPasalCount } = await supabase
-    .from("document_nodes")
-    .select("id", { count: "exact", head: true })
-    .eq("work_id", workId)
-    .eq("node_type", "pasal");
+  // Fire all initial queries in parallel (1 RTT instead of 2)
+  const [{ count: totalPasalCount }, { data: structure }, { data: initialPasals }, { data: rels }] = await Promise.all([
+    supabase
+      .from("document_nodes")
+      .select("id", { count: "exact", head: true })
+      .eq("work_id", workId)
+      .eq("node_type", "pasal"),
+    supabase
+      .from("document_nodes")
+      .select("id, node_type, number, heading, parent_id, sort_order")
+      .eq("work_id", workId)
+      .in("node_type", ["bab", "aturan", "bagian", "paragraf", "lampiran"])
+      .order("sort_order"),
+    supabase
+      .from("document_nodes")
+      .select("id, node_type, number, heading, parent_id, sort_order, content_text, pdf_page_start, pdf_page_end")
+      .eq("work_id", workId)
+      .eq("node_type", "pasal")
+      .order("sort_order")
+      .limit(30),
+    supabase
+      .from("work_relationships")
+      .select("*, relationship_types(code, name_id, name_en)")
+      .or(`source_work_id.eq.${workId},target_work_id.eq.${workId}`)
+      .order("id"),
+  ]);
 
-  // For small documents (< 100 pasals), fetch everything at once (old behavior)
-  // For large documents, use pagination
   const usePagination = (totalPasalCount || 0) >= 100;
+  const structuralNodes = structure;
+  let pasalNodes = initialPasals;
+  const relationships = rels;
 
-  let structuralNodes, pasalNodes, relationships;
-
-  if (usePagination) {
-    // Fetch structural nodes and initial pasals separately
-    const [{ data: structure }, { data: initial }, { data: rels }] = await Promise.all([
-      supabase
-        .from("document_nodes")
-        .select("id, node_type, number, heading, parent_id, sort_order")
-        .eq("work_id", workId)
-        .in("node_type", ["bab", "aturan", "bagian", "paragraf", "lampiran"])
-        .order("sort_order"),
-      supabase
-        .from("document_nodes")
-        .select("id, node_type, number, heading, parent_id, sort_order, content_text, pdf_page_start, pdf_page_end")
-        .eq("work_id", workId)
-        .eq("node_type", "pasal")
-        .order("sort_order")
-        .limit(30),
-      supabase
-        .from("work_relationships")
-        .select("*, relationship_types(code, name_id, name_en)")
-        .or(`source_work_id.eq.${workId},target_work_id.eq.${workId}`)
-        .order("id"),
-    ]);
-    structuralNodes = structure;
-    pasalNodes = initial;
-    relationships = rels;
-  } else {
-    // Old behavior: fetch all nodes at once
-    const [{ data: nodes }, { data: rels }] = await Promise.all([
-      supabase
-        .from("document_nodes")
-        .select("id, node_type, number, heading, parent_id, sort_order, content_text, pdf_page_start, pdf_page_end")
-        .eq("work_id", workId)
-        .order("sort_order"),
-      supabase
-        .from("work_relationships")
-        .select("*, relationship_types(code, name_id, name_en)")
-        .or(`source_work_id.eq.${workId},target_work_id.eq.${workId}`)
-        .order("id"),
-    ]);
-    const allNodes = nodes || [];
-    structuralNodes = allNodes.filter((n) => n.node_type === "bab" || n.node_type === "aturan" || n.node_type === "lampiran");
-    pasalNodes = allNodes.filter((n) => n.node_type === "pasal");
-    relationships = rels;
+  // For small documents with >30 pasals, fetch the rest
+  if (!usePagination && (totalPasalCount || 0) > 30) {
+    const { data: remaining } = await supabase
+      .from("document_nodes")
+      .select("id, node_type, number, heading, parent_id, sort_order, content_text, pdf_page_start, pdf_page_end")
+      .eq("work_id", workId)
+      .eq("node_type", "pasal")
+      .order("sort_order")
+      .range(30, (totalPasalCount || 100) - 1);
+    pasalNodes = [...(initialPasals || []), ...(remaining || [])];
   }
 
   // Get related work info
@@ -400,32 +389,30 @@ async function LawReaderSection({
   );
 }
 
-function ReaderSkeleton() {
-  return (
-    <div className="grid grid-cols-1 gap-8 lg:grid-cols-[220px_1fr_280px]">
-      <aside>
-        <div className="space-y-2">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-4 rounded bg-muted animate-pulse" />
-          ))}
-        </div>
-      </aside>
-      <main className="space-y-6">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="space-y-2">
-            <div className="h-5 w-24 rounded bg-muted animate-pulse" />
-            <div className="h-4 rounded bg-muted animate-pulse" />
-            <div className="h-4 w-3/4 rounded bg-muted animate-pulse" />
-          </div>
+const READER_SKELETON = (
+  <div className="grid grid-cols-1 gap-8 lg:grid-cols-[220px_1fr_280px]">
+    <aside>
+      <div className="space-y-2">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="h-4 rounded bg-muted animate-pulse" />
         ))}
-      </main>
-      <aside className="hidden lg:block space-y-4">
-        <div className="h-20 rounded-lg bg-muted animate-pulse" />
-        <div className="h-32 rounded-lg bg-muted animate-pulse" />
-      </aside>
-    </div>
-  );
-}
+      </div>
+    </aside>
+    <main className="space-y-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="space-y-2">
+          <div className="h-5 w-24 rounded bg-muted animate-pulse" />
+          <div className="h-4 rounded bg-muted animate-pulse" />
+          <div className="h-4 w-3/4 rounded bg-muted animate-pulse" />
+        </div>
+      ))}
+    </main>
+    <aside className="hidden lg:block space-y-4">
+      <div className="h-20 rounded-lg bg-muted animate-pulse" />
+      <div className="h-32 rounded-lg bg-muted animate-pulse" />
+    </aside>
+  </div>
+);
 
 export default async function LawDetailPage({ params }: PageProps) {
   const { locale, type, slug } = await params;
@@ -496,7 +483,7 @@ export default async function LawDetailPage({ params }: PageProps) {
 
         <DisclaimerBanner className="mb-6 no-print" />
 
-        <Suspense fallback={<ReaderSkeleton />}>
+        <Suspense fallback={READER_SKELETON}>
           <LawReaderSection
             workId={work.id}
             work={work}

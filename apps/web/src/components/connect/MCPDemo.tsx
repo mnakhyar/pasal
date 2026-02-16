@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, useCallback } from "react";
-import { motion, useInView } from "framer-motion";
+import { m, useInView } from "framer-motion";
 import { Pause, Play } from "lucide-react";
 import { EASE_OUT } from "@/lib/motion";
 import { DEMO_SCRIPT } from "@/lib/mcp-demo/script";
@@ -107,7 +107,7 @@ export default function MCPDemo() {
   }
 
   return (
-    <motion.div
+    <m.div
       ref={containerRef}
       initial={{ opacity: 0, y: 24 }}
       animate={isInView ? { opacity: 1, y: 0 } : {}}
@@ -216,6 +216,6 @@ export default function MCPDemo() {
           </span>
         </div>
       </div>
-    </motion.div>
+    </m.div>
   );
 }

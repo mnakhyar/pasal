@@ -16,6 +16,54 @@ import BrowseSection from "@/components/landing/BrowseSection";
 const TrustBlock = nextDynamic(() => import("@/components/landing/TrustBlock"));
 const RevealOnScroll = nextDynamic(() => import("@/components/landing/RevealOnScroll"));
 
+const STATS_SKELETON = (
+  <section className="border-y bg-card py-12 sm:py-16">
+    <div className="mx-auto max-w-5xl px-4">
+      <div className="mx-auto mb-8 h-4 w-56 rounded bg-muted animate-pulse" />
+      <div className="grid gap-8 sm:grid-cols-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="flex flex-col items-center gap-2">
+            <div className="h-10 w-20 rounded bg-muted animate-pulse" />
+            <div className="h-4 w-28 rounded bg-muted animate-pulse" />
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+);
+
+const CURATED_SKELETON = (
+  <section className="border-b py-16 sm:py-20">
+    <div className="mx-auto max-w-5xl px-4">
+      <div className="mx-auto h-10 w-64 rounded bg-muted animate-pulse" />
+      <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {[1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="h-40 rounded-lg bg-muted animate-pulse"
+          />
+        ))}
+      </div>
+    </div>
+  </section>
+);
+
+const BROWSE_SKELETON = (
+  <section className="border-b bg-card py-16 sm:py-20">
+    <div className="mx-auto max-w-5xl px-4">
+      <div className="mx-auto h-10 w-64 rounded bg-muted animate-pulse" />
+      <div className="mt-10 grid gap-3 grid-cols-2 sm:grid-cols-3">
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <div
+            key={i}
+            className="h-28 rounded-lg bg-muted animate-pulse"
+          />
+        ))}
+      </div>
+    </div>
+  </section>
+);
+
 export default async function HomePage({
   params,
 }: {
@@ -24,9 +72,11 @@ export default async function HomePage({
   const { locale } = await params;
   setRequestLocale(locale as Locale);
 
-  const metaT = await getTranslations({ locale: locale as Locale, namespace: "metadata" });
-  const devT = await getTranslations({ locale: locale as Locale, namespace: "developer" });
-  const ctaT = await getTranslations({ locale: locale as Locale, namespace: "cta" });
+  const [metaT, devT, ctaT] = await Promise.all([
+    getTranslations({ locale: locale as Locale, namespace: "metadata" }),
+    getTranslations({ locale: locale as Locale, namespace: "developer" }),
+    getTranslations({ locale: locale as Locale, namespace: "cta" }),
+  ]);
 
   const websiteLd = {
     "@context": "https://schema.org",
@@ -63,65 +113,17 @@ export default async function HomePage({
       <HeroSection />
 
       {/* 2. Stats — numbers count up on scroll */}
-      <Suspense
-        fallback={
-          <section className="border-y bg-card py-12 sm:py-16">
-            <div className="mx-auto max-w-5xl px-4">
-              <div className="mx-auto mb-8 h-4 w-56 rounded bg-muted animate-pulse" />
-              <div className="grid gap-8 sm:grid-cols-3">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex flex-col items-center gap-2">
-                    <div className="h-10 w-20 rounded bg-muted animate-pulse" />
-                    <div className="h-4 w-28 rounded bg-muted animate-pulse" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        }
-      >
+      <Suspense fallback={STATS_SKELETON}>
         <StatsSection />
       </Suspense>
 
       {/* 3. Peraturan Populer — carousel with auto-advance */}
-      <Suspense
-        fallback={
-          <section className="border-b py-16 sm:py-20">
-            <div className="mx-auto max-w-5xl px-4">
-              <div className="mx-auto h-10 w-64 rounded bg-muted animate-pulse" />
-              <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {[1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="h-40 rounded-lg bg-muted animate-pulse"
-                  />
-                ))}
-              </div>
-            </div>
-          </section>
-        }
-      >
+      <Suspense fallback={CURATED_SKELETON}>
         <CuratedLaws />
       </Suspense>
 
       {/* 4. Browse by Type — regulation type cards */}
-      <Suspense
-        fallback={
-          <section className="border-b bg-card py-16 sm:py-20">
-            <div className="mx-auto max-w-5xl px-4">
-              <div className="mx-auto h-10 w-64 rounded bg-muted animate-pulse" />
-              <div className="mt-10 grid gap-3 grid-cols-2 sm:grid-cols-3">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <div
-                    key={i}
-                    className="h-28 rounded-lg bg-muted animate-pulse"
-                  />
-                ))}
-              </div>
-            </div>
-          </section>
-        }
-      >
+      <Suspense fallback={BROWSE_SKELETON}>
         <BrowseSection />
       </Suspense>
 
