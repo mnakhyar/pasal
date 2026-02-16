@@ -27,7 +27,7 @@
 
 ## The Problem
 
-**280 million Indonesians** have no practical way to read their own laws. The official legal database ([peraturan.go.id](https://peraturan.go.id)) offers **only PDF downloads** — no search, no structure, no API. When you ask AI about Indonesian law, you get **hallucinated articles and wrong citations** because no grounded data source exists.
+**280 million Indonesians** have no practical way to read their own laws. The official legal database ([peraturan.go.id](https://peraturan.go.id)) offers **only PDF downloads**: no search, no structure, no API. When you ask AI about Indonesian law, you get **hallucinated articles and wrong citations** because no grounded data source exists.
 
 ## Try It Now
 
@@ -39,11 +39,11 @@ claude mcp add --transport http pasal-id https://pasal-mcp-server-production.up.
 
 Then ask:
 
-> *"Berapa usia minimum menikah di Indonesia?"* (What's the minimum marriage age?)
-> *"Jelaskan hak pekerja kontrak menurut UU Ketenagakerjaan"* (Explain contract worker rights)
+> *"Apa saja hak pekerja kontrak menurut UU Ketenagakerjaan?"* (What are contract worker rights under the Labor Law?)
+> *"Jelaskan pasal tentang perlindungan data pribadi"* (Explain articles on personal data protection)
 > *"Apakah UU Perkawinan 1974 masih berlaku?"* (Is the 1974 Marriage Law still in force?)
 
-Claude searches **40,000+ regulations and 937,000+ structured articles**, cites specific Pasal (articles), and gives grounded answers — no hallucination.
+Claude searches **40,000+ regulations and 937,000+ structured articles**, cites specific Pasal (articles), and gives grounded answers. No hallucination.
 
 Or browse the web app at **[pasal.id](https://pasal.id)**.
 
@@ -57,12 +57,12 @@ Or browse the web app at **[pasal.id](https://pasal.id)**.
 | **API** | REST API | Public JSON endpoints for search, browsing, and article retrieval |
 | **Correct** | Crowd-Sourced Corrections | Anyone can submit corrections; AI verifies before applying |
 | **Verify** | AI Verification Agent | Opus 4.6 vision compares parsed text against original PDF images |
-| **Track** | Amendment Chains | Full relationship tracking — amendments, revocations, cross-references |
+| **Track** | Amendment Chains | Full relationship tracking: amendments, revocations, cross-references |
 | **Globe** | Bilingual UI | Indonesian + English interface via next-intl (legal content stays Indonesian) |
 
 ## How Opus 4.6 Powers the Platform
 
-Opus 4.6 isn't just the LLM that answers questions — it runs a **self-improving correction flywheel** that makes the platform more accurate over time:
+The entire codebase, from the Next.js frontend to the MCP server to the data pipeline, was built with Claude Opus 4.6 via Claude Code during the hackathon period. But Opus 4.6 isn't just the development tool. It's embedded in the product itself, running a **self-improving correction flywheel** that makes the platform more accurate over time:
 
 ```
                     ┌───────────────────────────────┐
@@ -89,9 +89,9 @@ Opus 4.6 isn't just the LLM that answers questions — it runs a **self-improvin
                     └──────────┘   └───────────────────────┘
 ```
 
-### 1. MCP Server — Grounded Legal Access
+### 1. MCP Server: Grounded Legal Access
 
-Claude gets 4 tools to search real legislation, retrieve specific articles, check amendment status, and browse regulations — all returning real data with exact citations, not generated text.
+Claude gets 4 tools to search real legislation, retrieve specific articles, check amendment status, and browse regulations. All returning real data with exact citations, not generated text.
 
 ### 2. Multimodal Verification Agent
 
@@ -99,15 +99,15 @@ When users submit corrections, Opus 4.6 uses **vision** to compare the parsed te
 
 ### 3. Self-Improving Feedback Loop
 
-Every verification produces `parser_feedback` — notes on *why* the parser got it wrong. Opus 4.6 **aggregates this feedback**, **fetches the parser source code from GitHub**, analyzes systematic bugs, and **creates GitHub issues with specific code fixes**. The AI improves the pipeline that feeds it. ([`scripts/agent/parser_improver.py`](scripts/agent/parser_improver.py))
+Every verification produces `parser_feedback`: notes on *why* the parser got it wrong. Opus 4.6 **aggregates this feedback**, **fetches the parser source code from GitHub**, analyzes systematic bugs, and **creates GitHub issues with specific code fixes**. The AI improves the pipeline that feeds it. ([`scripts/agent/parser_improver.py`](scripts/agent/parser_improver.py))
 
 ### 4. Human-in-the-Loop Safety
 
-High-confidence corrections (≥85%) are auto-applied through a transaction-safe revision function. Below that threshold, corrections are queued for admin review. Every mutation is logged in an append-only audit trail — nothing is silently overwritten.
+High-confidence corrections (≥85%) are auto-applied through a transaction-safe revision function. Below that threshold, corrections are queued for admin review. Every mutation is logged in an append-only audit trail. Nothing is silently overwritten.
 
 ### 5. Claude Code as Development Tool
 
-The entire platform was built with Claude Code guided by **489 lines of CLAUDE.md specifications** across 4 directories — root, web app, MCP server, and data pipeline — encoding architecture decisions, coding conventions, database invariants, and domain knowledge.
+The entire platform was built with Claude Code guided by **489 lines of CLAUDE.md specifications** across 4 directories (root, web app, MCP server, and data pipeline), encoding architecture decisions, coding conventions, database invariants, and domain knowledge.
 
 ## Architecture
 
@@ -139,19 +139,19 @@ The entire platform was built with Claude Code guided by **489 lines of CLAUDE.m
                                             └───────────────────────┘
 ```
 
-## Built to Last — Technical Depth
+## Built to Last: Technical Depth
 
 This isn't a weekend hack. Key engineering decisions:
 
-- **49 SQL migrations** — iterative schema evolution, not a single dump
-- **3-layer search with identity fast-path** — regex-detected regulation IDs (score 1000) → works FTS (score 1-15) → content FTS with 3-tier fallback (`websearch_to_tsquery` → `plainto_tsquery` → `ILIKE`), capped candidate CTEs to prevent O(N) snippet generation
-- **Append-only revision audit trail** — content is never directly UPDATE'd; all mutations go through `apply_revision()` SQL function in a single transaction (revision insert + node update + suggestion update)
-- **Transaction-safe content mutations** — if any step fails, everything rolls back
+- **49 SQL migrations** with iterative schema evolution, not a single dump
+- **3-layer search with identity fast-path**: regex-detected regulation IDs (score 1000) → works FTS (score 1-15) → content FTS with 3-tier fallback (`websearch_to_tsquery` → `plainto_tsquery` → `ILIKE`), capped candidate CTEs to prevent O(N) snippet generation
+- **Append-only revision audit trail**: content is never directly UPDATE'd; all mutations go through `apply_revision()` SQL function in a single transaction (revision insert + node update + suggestion update)
+- **Transaction-safe content mutations**: if any step fails, everything rolls back
 - **Row-Level Security** on all tables with public read policies for legal data
-- **Input sanitization** — `[^a-zA-Z0-9 ]` stripped before tsquery to prevent injection
-- **ISR with on-demand revalidation** — static generation + instant updates when content changes
-- **Atomic job claiming** — `FOR UPDATE SKIP LOCKED` prevents duplicate processing in the scraper pipeline
-- **11 regulation types** covering laws from 1945 to 2026, sourced from [peraturan.go.id](https://peraturan.go.id) and [peraturan.bpk.go.id](https://peraturan.bpk.go.id)
+- **Input sanitization**: `[^a-zA-Z0-9 ]` stripped before tsquery to prevent injection
+- **ISR with on-demand revalidation** for static generation + instant updates when content changes
+- **Atomic job claiming**: `FOR UPDATE SKIP LOCKED` prevents duplicate processing in the scraper pipeline
+- **11 regulation types** covering laws from 1945 to 2026, from official government sources
 
 ## MCP Tools
 
@@ -170,7 +170,7 @@ This isn't a weekend hack. Key engineering decisions:
 | Database | Supabase (PostgreSQL FTS with `indonesian` stemmer + pg_trgm) |
 | MCP Server | Python + FastMCP, deployed on Railway |
 | Correction Agent | Claude Opus 4.6 (vision + code analysis), deployed on Railway |
-| Data Pipeline | Python — httpx, PyMuPDF, BeautifulSoup |
+| Data Pipeline | Python, httpx, PyMuPDF, BeautifulSoup |
 | Search | 3-layer: identity fast-path → works FTS → content FTS with ILIKE fallback |
 | i18n | next-intl with Indonesian (default) + English |
 
@@ -178,11 +178,11 @@ This isn't a weekend hack. Key engineering decisions:
 
 Currently covers **40,143 regulations** across 11 types including:
 
-- **UU** (Undang-Undang) — Primary laws from parliament
-- **PP** (Peraturan Pemerintah) — Government regulations
-- **Perpres** (Peraturan Presiden) — Presidential regulations
-- **UUD** — The 1945 Constitution
-- **Permen**, **Perda**, and more — sourced from [peraturan.go.id](https://peraturan.go.id) and [peraturan.bpk.go.id](https://peraturan.bpk.go.id)
+- **UU** (Undang-Undang) · Primary laws from parliament
+- **PP** (Peraturan Pemerintah) · Government regulations
+- **Perpres** (Peraturan Presiden) · Presidential regulations
+- **UUD** · The 1945 Constitution
+- **Permen**, **Perda**, and more from official government sources
 
 ## Development
 
