@@ -213,7 +213,7 @@ async def process_suggestion(suggestion: dict) -> dict | None:
                 reason=f"Agent auto-approved: {result.get('reasoning', '')[:200]}",
                 suggestion_id=suggestion_id,
                 actor_type="agent",
-                created_by="correction-agent-opus",
+                created_by=None,
             )
 
             if revision_id:
