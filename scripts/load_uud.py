@@ -43,7 +43,7 @@ UUD_ENTRIES = [
         },
     },
     {
-        "slug": "uud-1945-perubahan-pertama",
+        "slug": "uud-1945-p1",
         "pdf": "uud-1945-perubahan-pertama.pdf",
         "metadata": {
             "type": "UUD",
@@ -52,11 +52,11 @@ UUD_ENTRIES = [
             "frbr_uri": "/akn/id/act/uud/1945/perubahan-1",
             "title_id": "Perubahan Pertama Undang-Undang Dasar Negara Republik Indonesia Tahun 1945",
             "status": "berlaku",
-            "slug": "uud-1945-perubahan-pertama",
+            "slug": "uud-1945-p1",
         },
     },
     {
-        "slug": "uud-1945-perubahan-kedua",
+        "slug": "uud-1945-p2",
         "pdf": "uud-1945-perubahan-kedua.pdf",
         "metadata": {
             "type": "UUD",
@@ -65,7 +65,7 @@ UUD_ENTRIES = [
             "frbr_uri": "/akn/id/act/uud/1945/perubahan-2",
             "title_id": "Perubahan Kedua Undang-Undang Dasar Negara Republik Indonesia Tahun 1945",
             "status": "berlaku",
-            "slug": "uud-1945-perubahan-kedua",
+            "slug": "uud-1945-p2",
         },
     },
 ]

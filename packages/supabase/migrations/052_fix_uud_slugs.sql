@@ -52,3 +52,6 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+-- Preserve search_path hardening from migration 049
+ALTER FUNCTION generate_work_slug() SET search_path = 'public', 'extensions';
